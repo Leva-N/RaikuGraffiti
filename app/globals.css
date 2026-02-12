@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground: #2c2416;
+  --background: #fff8ed;
+  --wall-brick: #a0522d;
+  --wall-mortar: #8b7355;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground: #2c2416;
+    --background: #f5e6d0;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Фон стены — изображение кирпичной сетки с нишами (подставляется через inline style) */
+.wall-page {
+  background-color: #b8956e;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Контейнер стены: тень и ограничение ширины */
+.wall-container {
+  max-width: 1400px;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.15));
+}
+
+/* Плавное появление для контента */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
