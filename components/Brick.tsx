@@ -12,9 +12,11 @@ export type BrickSlot = {
 type BrickProps = {
   slot: BrickSlot;
   isLoading?: boolean;
+  onDelete?: (slotId: number) => void;
+  isDeleting?: boolean;
 };
 
-export function Brick({ slot, isLoading }: BrickProps) {
+export function Brick({ slot, isLoading, onDelete, isDeleting }: BrickProps) {
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const hasImage = Boolean(slot.imageUrl) && !imgError;
@@ -28,19 +30,18 @@ export function Brick({ slot, isLoading }: BrickProps) {
 
   return (
     <div
-      className="
-        relative w-full h-full min-h-0
-        transition-transform duration-200 ease-out
-        hover:scale-[1.02]
-        overflow-hidden
-      "
+      className="absolute overflow-hidden transition-transform duration-200 ease-out hover:scale-[1.02]"
+      style={{
+        inset: "var(--niche-inset, 0)",
+        touchAction: "none",
+      }}
     >
       {isLoading ? (
         <div className="absolute inset-0 flex items-center justify-center bg-stone-800/50 animate-pulse">
           <span className="text-stone-300 text-lg">...</span>
         </div>
       ) : hasImage && slot.imageUrl ? (
-        <div className="absolute inset-0 overflow-hidden bg-stone-900/90">
+        <>
           <Image
             src={slot.imageUrl}
             alt=""
@@ -51,9 +52,25 @@ export function Brick({ slot, isLoading }: BrickProps) {
             onError={handleError}
             unoptimized
           />
-        </div>
+          {onDelete && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDelete(slot.id);
+              }}
+              disabled={isDeleting}
+              className="absolute top-1 right-1 z-10 w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center text-lg font-bold hover:bg-red-700 disabled:opacity-50 transition-colors shadow-lg pointer-events-auto"
+              title="Удалить фото"
+              aria-label="Удалить фото"
+            >
+              {isDeleting ? "…" : "×"}
+            </button>
+          )}
+        </>
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-transparent">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <span
             className="text-3xl font-light text-stone-600/80 select-none drop-shadow-sm"
             aria-hidden

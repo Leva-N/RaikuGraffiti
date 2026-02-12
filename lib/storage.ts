@@ -38,5 +38,6 @@ export async function deleteImage(url: string): Promise<void> {
     await del(url, { token });
   } catch (e) {
     console.error("deleteImage error", e);
+    // Не пробрасываем — слот всё равно очищаем в БД
   }
 }

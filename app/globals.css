@@ -36,6 +36,11 @@ body {
   filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.15));
 }
 
+/* Если ниши на картинке не впритык — задайте отступ (например 2% 3%) */
+.wall-grid {
+  --niche-inset: 0;
+}
+
 /* Плавное появление для контента */
 @keyframes fadeIn {
   from {

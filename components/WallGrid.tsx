@@ -20,6 +20,7 @@ export function WallGrid({ backgroundImageUrl }: WallGridProps) {
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const fetchSlots = useCallback(async () => {
     try {
@@ -94,6 +95,34 @@ export function WallGrid({ backgroundImageUrl }: WallGridProps) {
     [handleFile]
   );
 
+  const handleDelete = useCallback(
+    async (slotId: number) => {
+      if (!data || deletingId !== null) return;
+      setUploadError(null);
+      setDeletingId(slotId);
+      try {
+        const res = await fetch(`/api/slots?slotId=${slotId}`, { method: "DELETE" });
+        const body = await res.json();
+        if (!res.ok) {
+          setUploadError(body.error || "Не удалось удалить");
+          return;
+        }
+        setData((prev) => {
+          if (!prev) return prev;
+          const slots = prev.slots.map((s) =>
+            s.id === slotId ? { id: s.id, imageUrl: null, createdAt: null } : s
+          );
+          return { ...prev, slots, updatedAt: new Date().toISOString() };
+        });
+      } catch {
+        setUploadError("Ошибка сети");
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [data, deletingId]
+  );
+
   const slots = data?.slots?.length ? data.slots : createEmptySlots();
   const rowCount = Math.ceil(slots.length / WALL_COLUMNS) || INITIAL_ROWS;
 
@@ -146,31 +175,22 @@ export function WallGrid({ backgroundImageUrl }: WallGridProps) {
             gridTemplateRows: `repeat(${rowCount}, 1fr)`,
             gap: 0,
             aspectRatio: `${WALL_COLUMNS}/${rowCount}`,
+            backgroundImage: `url('${backgroundImageUrl}')`,
+            backgroundSize: `100% ${(NICHES_PER_IMAGE_ROW / rowCount) * 100}%`,
+            backgroundRepeat: "repeat-y",
+            backgroundPosition: "top center",
           }}
         >
-          {slots.map((slot: BrickSlot) => {
-            const col = slot.id % WALL_COLUMNS;
-            const row = Math.floor(slot.id / WALL_COLUMNS);
-            const bgX = (col / (WALL_COLUMNS - 1 || 1)) * 100;
-            const bgY = ((row % NICHES_PER_IMAGE_ROW) / (NICHES_PER_IMAGE_ROW - 1 || 1)) * 100;
-            return (
-              <div
-                key={slot.id}
-                className="relative w-full min-h-0"
-                style={{
-                  backgroundImage: `url('${backgroundImageUrl}')`,
-                  backgroundSize: `${WALL_COLUMNS * 100}% ${NICHES_PER_IMAGE_ROW * 100}%`,
-                  backgroundRepeat: "repeat-y",
-                  backgroundPosition: `${bgX}% ${bgY}%`,
-                }}
-              >
-                <Brick
-                  slot={slot}
-                  isLoading={uploadingId === slot.id}
-                />
-              </div>
-            );
-          })}
+          {slots.map((slot: BrickSlot) => (
+            <div key={slot.id} className="relative w-full min-h-0 overflow-hidden">
+              <Brick
+                slot={slot}
+                isLoading={uploadingId === slot.id}
+                onDelete={handleDelete}
+                isDeleting={deletingId === slot.id}
+              />
+            </div>
+          ))}
         </div>
       </div>
     </div>
