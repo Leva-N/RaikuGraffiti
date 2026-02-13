@@ -1,5 +1,5 @@
-/** На фоне 5 колонок и 4 ряда ниш (повторяется по вертикали для новых рядов) */
-export const WALL_COLUMNS = 5;
+/** 4 фото в ряд, отступы между ними */
+export const WALL_COLUMNS = 4;
 export const NICHES_PER_IMAGE_ROW = 4;
 export const INITIAL_ROWS = NICHES_PER_IMAGE_ROW;
 export const SLOTS_PER_ROW = WALL_COLUMNS;

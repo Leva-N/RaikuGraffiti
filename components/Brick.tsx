@@ -80,14 +80,7 @@ export function Brick({ slot, isLoading, onDelete, isDeleting, isRevealing }: Br
           )}
         </>
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span
-            className="text-3xl font-light text-stone-600/80 select-none"
-            aria-hidden
-          >
-            +
-          </span>
-        </div>
+        <div className="absolute inset-0 pointer-events-none" />
       )}
     </div>
   );

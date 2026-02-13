@@ -73,21 +73,6 @@ export async function POST(request: NextRequest) {
       };
       await saveSlots(updatedData);
 
-      for (let attempt = 0; attempt < 5; attempt++) {
-        await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
-        const verify = await getSlotsForWrite();
-        const slotAfter = verify.slots.find((s) => Number(s.id) === slotId);
-        if (slotAfter?.imageUrl === imageUrl.trim()) {
-          return NextResponse.json({
-            slotId,
-            imageUrl: imageUrl.trim(),
-            createdAt,
-            slots: verify.slots,
-            updatedAt: verify.updatedAt,
-          });
-        }
-      }
-
       return NextResponse.json({
         slotId,
         imageUrl: imageUrl.trim(),

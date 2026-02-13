@@ -1,17 +1,21 @@
 import { del, list, put } from "@vercel/blob";
 import type { SlotsData } from "./types";
-import { createEmptySlots, WALL_COLUMNS } from "./types";
+import { createEmptySlots } from "./types";
 import { getBlobToken, hasBlobToken } from "./blob-token";
 
 const SLOTS_PREFIX = "wall-slots/";
 const SLOTS_HISTORY_KEEP = 30;
+const SLOTS_READ_LIST_LIMIT = 1000;
+const SLOTS_CLEANUP_LIST_LIMIT = 200;
+const SLOTS_CACHE_TTL_MS = 15_000;
+const SLOTS_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 let slotsWriteLock: Promise<void> = Promise.resolve();
+let slotsCache: { data: SlotsData; expiresAt: number } | null = null;
+let lastCleanupAt = 0;
 
 function normalizeSlots(data: SlotsData): SlotsData {
   if (!data.slots || !Array.isArray(data.slots)) return { slots: createEmptySlots(), updatedAt: data.updatedAt ?? new Date().toISOString() };
   let slots = data.slots;
-  const remainder = slots.length % WALL_COLUMNS;
-  if (remainder !== 0) slots = slots.slice(0, slots.length - remainder);
   if (slots.length === 0) return { slots: createEmptySlots(), updatedAt: data.updatedAt ?? new Date().toISOString() };
   slots = slots.map((s, index) => ({
     id: typeof s.id === "number" ? s.id : index,
@@ -27,11 +31,27 @@ const defaultSlotsData = (): SlotsData => ({
   updatedAt: new Date().toISOString(),
 });
 
+function getCachedSlots(): SlotsData | null {
+  if (!slotsCache) return null;
+  if (Date.now() > slotsCache.expiresAt) {
+    slotsCache = null;
+    return null;
+  }
+  return slotsCache.data;
+}
+
+function setSlotsCache(data: SlotsData): void {
+  slotsCache = {
+    data: normalizeSlots(data),
+    expiresAt: Date.now() + SLOTS_CACHE_TTL_MS,
+  };
+}
+
 async function readLatestSlots(token: string): Promise<SlotsData | null> {
   const { blobs } = await list({
     token,
     prefix: SLOTS_PREFIX,
-    limit: 1000,
+    limit: SLOTS_READ_LIST_LIMIT,
   });
   if (!blobs.length) return null;
 
@@ -62,9 +82,14 @@ export async function getSlots(): Promise<SlotsData> {
   if (!hasBlobToken()) return defaultData;
 
   try {
+    const cached = getCachedSlots();
+    if (cached) return cached;
+
     const token = getBlobToken();
     const data = await readLatestSlots(token);
-    return data ?? defaultData;
+    const result = data ?? defaultData;
+    setSlotsCache(result);
+    return result;
   } catch {
     return defaultData;
   }
@@ -75,15 +100,18 @@ export async function getSlotsForWrite(): Promise<SlotsData> {
   if (!hasBlobToken()) throw new Error("BLOB_READ_WRITE_TOKEN не настроен");
   const token = getBlobToken();
   const data = await readLatestSlots(token);
-  return data ?? defaultSlotsData();
+  const result = data ?? defaultSlotsData();
+  setSlotsCache(result);
+  return result;
 }
 
 export async function saveSlots(data: SlotsData): Promise<void> {
   const token = getBlobToken();
   try {
+    const normalized = normalizeSlots(data);
     await put(
       `${SLOTS_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2)}.json`,
-      JSON.stringify(data),
+      JSON.stringify(normalized),
       {
       access: "public",
       token,
@@ -92,22 +120,26 @@ export async function saveSlots(data: SlotsData): Promise<void> {
       addRandomSuffix: false,
     }
     );
+    setSlotsCache(normalized);
 
-    // Best-effort cleanup old slot snapshots.
-    const { blobs } = await list({
-      token,
-      prefix: SLOTS_PREFIX,
-      limit: 1000,
-    });
-    if (blobs.length > SLOTS_HISTORY_KEEP) {
-      const sortedOldestFirst = [...blobs].sort(
-        (a, b) => new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime()
-      );
-      const toDelete = sortedOldestFirst
-        .slice(0, blobs.length - SLOTS_HISTORY_KEEP)
-        .map((b) => b.url);
-      if (toDelete.length) {
-        await del(toDelete, { token });
+    if (Date.now() - lastCleanupAt >= SLOTS_CLEANUP_INTERVAL_MS) {
+      lastCleanupAt = Date.now();
+      // Best-effort cleanup old slot snapshots (throttled).
+      const { blobs } = await list({
+        token,
+        prefix: SLOTS_PREFIX,
+        limit: SLOTS_CLEANUP_LIST_LIMIT,
+      });
+      if (blobs.length > SLOTS_HISTORY_KEEP) {
+        const sortedOldestFirst = [...blobs].sort(
+          (a, b) => new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime()
+        );
+        const toDelete = sortedOldestFirst
+          .slice(0, blobs.length - SLOTS_HISTORY_KEEP)
+          .map((b) => b.url);
+        if (toDelete.length) {
+          await del(toDelete, { token });
+        }
       }
     }
   } catch (e) {

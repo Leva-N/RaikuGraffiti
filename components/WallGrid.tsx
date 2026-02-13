@@ -17,6 +17,7 @@ const ROULETTE_ITEM_GAP = 12;
 const ROULETTE_ITEM_STEP = ROULETTE_ITEM_SIZE + ROULETTE_ITEM_GAP;
 const ROULETTE_SPIN_MS = 4800;
 const ROULETTE_RESULT_MS = 3000;
+const SLOTS_CACHE_KEY = "raiku_wall_slots_v1";
 
 function getUniformRandomInt(maxExclusive: number): number {
   if (maxExclusive <= 0) return 0;
@@ -53,6 +54,12 @@ function pickRandomDragonUrl(excluded: Set<string> = new Set()): string {
   return pool[getUniformRandomInt(pool.length)] ?? urls[0];
 }
 
+/** Стабильный «хаотичный» наклон для слота в градусах (-12..12) */
+function getSlotTiltDeg(slotId: number): number {
+  const n = Number(slotId);
+  return ((n * 11 + 7) % 25) - 12;
+}
+
 function buildNoAdjacentRandomUrls(count: number, prevUrl: string | null): string[] {
   const result: string[] = [];
   let prev = prevUrl;
@@ -66,7 +73,7 @@ function buildNoAdjacentRandomUrls(count: number, prevUrl: string | null): strin
 
 export function WallGrid() {
   const [data, setData] = useState<SlotsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -91,13 +98,24 @@ export function WallGrid() {
 
   const fetchSlots = useCallback(async () => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
       const res = await fetch("/api/slots", { cache: "no-store", signal: controller.signal });
       if (!res.ok) throw new Error("Failed to load slots");
       const json = (await res.json()) as SlotsData;
       setData(json);
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(SLOTS_CACHE_KEY, JSON.stringify(json));
+        } catch (e) {
+          console.warn("slots cache write failed", e);
+        }
+      }
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        // Keep current UI state on timeout; do not reset slots to empty.
+        return;
+      }
       console.error(err);
       setData((prev) => prev ?? { slots: createEmptySlots(), updatedAt: new Date().toISOString() });
     } finally {
@@ -107,6 +125,19 @@ export function WallGrid() {
   }, []);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem(SLOTS_CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as SlotsData;
+          if (parsed?.slots && Array.isArray(parsed.slots) && typeof parsed.updatedAt === "string") {
+            setData(parsed);
+          }
+        }
+      } catch (e) {
+        console.warn("slots cache read failed", e);
+      }
+    }
     fetchSlots();
   }, [fetchSlots]);
 
@@ -376,7 +407,7 @@ export function WallGrid() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-center gap-3 px-4">
+      <div className="relative z-30 flex flex-wrap items-center justify-center gap-3 px-4">
         <input
           ref={fileInputRef}
           type="file"
@@ -389,15 +420,15 @@ export function WallGrid() {
         <button
           type="button"
           onClick={() => setShowDragonList(true)}
-          disabled={loading || uploading || assigning}
+          disabled={uploading || assigning}
           className="rounded-lg bg-amber-700/90 px-4 py-2 text-white font-medium shadow-md hover:bg-amber-800 disabled:pointer-events-none disabled:opacity-60"
         >
-          {loading ? "Загрузка стены..." : uploading ? "Загрузка..." : "Выбрать своего дракона"}
+          {uploading ? "Загрузка..." : "Выбрать своего дракона"}
         </button>
         <button
           type="button"
           onClick={startRandomRoulette}
-          disabled={loading || uploading || assigning || rouletteRolling}
+          disabled={uploading || assigning || rouletteRolling}
           className="rounded-lg bg-amber-700/90 px-4 py-2 text-white font-medium shadow-md hover:bg-amber-800 disabled:pointer-events-none disabled:opacity-60"
         >
           {rouletteRolling ? "Рулетка крутится..." : "Выбрать случайного дракона"}
@@ -575,23 +606,27 @@ export function WallGrid() {
         </div>
       )}
 
-      <div className="flex justify-center px-4">
+      <div className="relative z-0 flex justify-center px-4 py-6">
         <div
-          className="w-full max-w-[1400px] wall-grid overflow-hidden bg-transparent"
+          className="w-full max-w-[1400px] wall-grid overflow-visible bg-transparent"
           style={{
             display: "grid",
             gridTemplateColumns: `repeat(${WALL_COLUMNS}, 1fr)`,
             gridTemplateRows: `repeat(${rowCount}, 1fr)`,
-            gap: 0,
+            gap: 16,
             aspectRatio: `${WALL_COLUMNS}/${rowCount}`,
           }}
         >
           {loading
             ? Array.from({ length: WALL_COLUMNS * INITIAL_ROWS }).map((_, i) => (
-                <div key={i} className="bg-stone-600/30 animate-pulse" />
+                <div key={i} className="bg-stone-600/30 animate-pulse rounded-lg" />
               ))
             : slots.map((slot: BrickSlot) => (
-                <div key={slot.id} className="relative w-full min-h-0 overflow-hidden bg-transparent">
+                <div
+                  key={slot.id}
+                  className="relative w-full min-h-0 overflow-visible bg-transparent"
+                  style={{ transform: `rotate(${getSlotTiltDeg(slot.id)}deg)` }}
+                >
                   {pendingRevealSlots[Number(slot.id)] && (
                     <div className="spray-reveal-overlay spray-reveal-fill-layer" aria-hidden>
                       <div className="spray-reveal-fill" />
