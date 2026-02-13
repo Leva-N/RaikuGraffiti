@@ -5,6 +5,7 @@ import { getBlobToken, hasBlobToken } from "./blob-token";
 
 const SLOTS_PREFIX = "wall-slots/";
 const SLOTS_HISTORY_KEEP = 30;
+let slotsWriteLock: Promise<void> = Promise.resolve();
 
 function normalizeSlots(data: SlotsData): SlotsData {
   if (!data.slots || !Array.isArray(data.slots)) return { slots: createEmptySlots(), updatedAt: data.updatedAt ?? new Date().toISOString() };
@@ -117,4 +118,23 @@ export async function saveSlots(data: SlotsData): Promise<void> {
 
 export async function getFreeSlotIds(slots: SlotsData["slots"]): Promise<number[]> {
   return slots.filter((s) => !s.imageUrl).map((s) => s.id);
+}
+
+/**
+ * Serializes all slot write operations across API routes.
+ * This prevents lost updates when multiple writes happen almost simultaneously.
+ */
+export async function withSlotsWriteLock<T>(operation: () => Promise<T>): Promise<T> {
+  const previousLock = slotsWriteLock;
+  let releaseLock!: () => void;
+  slotsWriteLock = new Promise<void>((resolve) => {
+    releaseLock = resolve;
+  });
+
+  await previousLock;
+  try {
+    return await operation();
+  } finally {
+    releaseLock();
+  }
 }

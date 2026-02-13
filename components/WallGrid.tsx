@@ -37,7 +37,7 @@ function getUniformRandomInt(maxExclusive: number): number {
   return value % maxExclusive;
 }
 
-function shuffleWithUniformRandom<T>(source: T[]): T[] {
+function shuffleWithUniformRandom<T>(source: readonly T[]): T[] {
   const result = [...source];
   for (let i = result.length - 1; i > 0; i -= 1) {
     const j = getUniformRandomInt(i + 1);
@@ -90,8 +90,10 @@ export function WallGrid() {
   const rouletteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchSlots = useCallback(async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     try {
-      const res = await fetch("/api/slots", { cache: "no-store" });
+      const res = await fetch("/api/slots", { cache: "no-store", signal: controller.signal });
       if (!res.ok) throw new Error("Failed to load slots");
       const json = (await res.json()) as SlotsData;
       setData(json);
@@ -99,6 +101,7 @@ export function WallGrid() {
       console.error(err);
       setData((prev) => prev ?? { slots: createEmptySlots(), updatedAt: new Date().toISOString() });
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   }, []);
@@ -371,28 +374,6 @@ export function WallGrid() {
   const slots = data?.slots?.length ? data.slots : createEmptySlots();
   const rowCount = Math.ceil(slots.length / WALL_COLUMNS) || INITIAL_ROWS;
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-center">
-          <div
-            className="w-full max-w-[1400px] grid bg-stone-500/20 rounded-lg overflow-hidden"
-            style={{
-              aspectRatio: `${WALL_COLUMNS}/${INITIAL_ROWS}`,
-              gridTemplateColumns: `repeat(${WALL_COLUMNS}, 1fr)`,
-              gridTemplateRows: `repeat(${INITIAL_ROWS}, 1fr)`,
-              gap: 0,
-            }}
-          >
-            {Array.from({ length: WALL_COLUMNS * INITIAL_ROWS }).map((_, i) => (
-              <div key={i} className="bg-stone-600/30 animate-pulse" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-center gap-3 px-4">
@@ -408,15 +389,15 @@ export function WallGrid() {
         <button
           type="button"
           onClick={() => setShowDragonList(true)}
-          disabled={uploading || assigning}
+          disabled={loading || uploading || assigning}
           className="rounded-lg bg-amber-700/90 px-4 py-2 text-white font-medium shadow-md hover:bg-amber-800 disabled:pointer-events-none disabled:opacity-60"
         >
-          {uploading ? "Загрузка…" : "Выбрать своего дракона"}
+          {loading ? "Загрузка стены..." : uploading ? "Загрузка..." : "Выбрать своего дракона"}
         </button>
         <button
           type="button"
           onClick={startRandomRoulette}
-          disabled={uploading || assigning || rouletteRolling}
+          disabled={loading || uploading || assigning || rouletteRolling}
           className="rounded-lg bg-amber-700/90 px-4 py-2 text-white font-medium shadow-md hover:bg-amber-800 disabled:pointer-events-none disabled:opacity-60"
         >
           {rouletteRolling ? "Рулетка крутится..." : "Выбрать случайного дракона"}
@@ -605,41 +586,45 @@ export function WallGrid() {
             aspectRatio: `${WALL_COLUMNS}/${rowCount}`,
           }}
         >
-          {slots.map((slot: BrickSlot) => (
-            <div key={slot.id} className="relative w-full min-h-0 overflow-hidden bg-transparent">
-              {pendingRevealSlots[Number(slot.id)] && (
-                <div className="spray-reveal-overlay spray-reveal-fill-layer" aria-hidden>
-                  <div className="spray-reveal-fill" />
+          {loading
+            ? Array.from({ length: WALL_COLUMNS * INITIAL_ROWS }).map((_, i) => (
+                <div key={i} className="bg-stone-600/30 animate-pulse" />
+              ))
+            : slots.map((slot: BrickSlot) => (
+                <div key={slot.id} className="relative w-full min-h-0 overflow-hidden bg-transparent">
+                  {pendingRevealSlots[Number(slot.id)] && (
+                    <div className="spray-reveal-overlay spray-reveal-fill-layer" aria-hidden>
+                      <div className="spray-reveal-fill" />
+                    </div>
+                  )}
+                  {sprayFx && Number(sprayFx.slotId) === Number(slot.id) && (
+                    <div
+                      key={sprayFx.nonce}
+                      className="spray-fx-overlay"
+                      aria-hidden
+                    >
+                      <div className="spray-fx-cloud spray-fx-cloud-a" />
+                      <div className="spray-fx-cloud spray-fx-cloud-b" />
+                      <div className="spray-fx-cloud spray-fx-cloud-c" />
+                      <div className="spray-fx-can" />
+                    </div>
+                  )}
+                  <div className="relative z-10 h-full">
+                    <Brick
+                      slot={slot}
+                      isLoading={uploadingId === slot.id}
+                      onDelete={handleDelete}
+                      isDeleting={deletingId === slot.id}
+                      isRevealing={!!pendingRevealSlots[Number(slot.id)]}
+                    />
+                  </div>
+                  {pendingRevealSlots[Number(slot.id)] && (
+                    <div className="spray-reveal-overlay spray-reveal-can-layer" aria-hidden>
+                      <div className="spray-reveal-can" />
+                    </div>
+                  )}
                 </div>
-              )}
-              {sprayFx && Number(sprayFx.slotId) === Number(slot.id) && (
-                <div
-                  key={sprayFx.nonce}
-                  className="spray-fx-overlay"
-                  aria-hidden
-                >
-                  <div className="spray-fx-cloud spray-fx-cloud-a" />
-                  <div className="spray-fx-cloud spray-fx-cloud-b" />
-                  <div className="spray-fx-cloud spray-fx-cloud-c" />
-                  <div className="spray-fx-can" />
-                </div>
-              )}
-              <div className="relative z-10 h-full">
-                <Brick
-                  slot={slot}
-                  isLoading={uploadingId === slot.id}
-                  onDelete={handleDelete}
-                  isDeleting={deletingId === slot.id}
-                  isRevealing={!!pendingRevealSlots[Number(slot.id)]}
-                />
-              </div>
-              {pendingRevealSlots[Number(slot.id)] && (
-                <div className="spray-reveal-overlay spray-reveal-can-layer" aria-hidden>
-                  <div className="spray-reveal-can" />
-                </div>
-              )}
-            </div>
-          ))}
+              ))}
         </div>
       </div>
     </div>
