@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthSession } from "@/auth";
 import { getSlotsForWrite, saveSlots, getFreeSlotIds, withSlotsWriteLock } from "@/lib/db";
 import { uploadImage, validateImageFile } from "@/lib/storage";
 import { appendRow, MAX_SLOTS } from "@/lib/types";
@@ -31,6 +32,12 @@ export async function POST(request: NextRequest) {
       }
       const file = formData.get("file");
       const placement = (formData.get("placement") as string | null) || "sequential";
+      const session = await getAuthSession();
+      const discordUserId = session?.user?.id;
+      if (!discordUserId) {
+        return NextResponse.json({ error: "Сначала подключите Discord" }, { status: 401 });
+      }
+      const discordUsername = session.user?.name?.trim() || "Discord User";
 
       if (!file || !(file instanceof File)) {
         return NextResponse.json(
@@ -81,7 +88,16 @@ export async function POST(request: NextRequest) {
       const createdAt = new Date().toISOString();
 
       const slots = data.slots.map((s) =>
-        Number(s.id) === Number(slotId) ? { id: s.id, imageUrl: url, createdAt } : s
+        Number(s.id) === Number(slotId)
+          ? {
+              id: s.id,
+              imageUrl: url,
+              createdAt,
+              discordNick: discordUsername,
+              ownerDiscordId: discordUserId,
+              ownerDiscordUsername: discordUsername,
+            }
+          : s
       );
 
       await saveSlots({

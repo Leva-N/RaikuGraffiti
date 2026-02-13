@@ -10,6 +10,8 @@ export type Slot = {
   imageUrl: string | null;
   createdAt: string | null;
   discordNick?: string | null;
+  ownerDiscordId?: string | null;
+  ownerDiscordUsername?: string | null;
 };
 
 export type SlotsData = {
@@ -21,7 +23,14 @@ export type SlotsData = {
 export function createEmptySlots(): Slot[] {
   return Array.from(
     { length: WALL_COLUMNS * INITIAL_ROWS },
-    (_, i) => ({ id: i, imageUrl: null, createdAt: null, discordNick: null })
+    (_, i) => ({
+      id: i,
+      imageUrl: null,
+      createdAt: null,
+      discordNick: null,
+      ownerDiscordId: null,
+      ownerDiscordUsername: null,
+    })
   );
 }
 
@@ -34,6 +43,8 @@ export function appendRow(slots: Slot[]): Slot[] {
     imageUrl: null,
     createdAt: null,
     discordNick: null,
+    ownerDiscordId: null,
+    ownerDiscordUsername: null,
   }));
   return [...slots, ...newRow].slice(0, MAX_SLOTS);
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthSession } from "@/auth";
 import { getSlots, getSlotsForWrite, saveSlots, withSlotsWriteLock } from "@/lib/db";
 import { deleteImage } from "@/lib/storage";
 
@@ -44,6 +45,18 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ ok: true, slotId, alreadyEmpty: true });
       }
 
+      const session = await getAuthSession();
+      const discordUserId = session?.user?.id;
+      if (!discordUserId) {
+        return NextResponse.json({ error: "Требуется авторизация Discord" }, { status: 401 });
+      }
+      if (!slot.ownerDiscordId || slot.ownerDiscordId !== discordUserId) {
+        return NextResponse.json(
+          { error: "Можно удалять только свои фотографии" },
+          { status: 403 }
+        );
+      }
+
       const imageUrl = slot.imageUrl;
       const isBlobUrl =
         typeof imageUrl === "string" &&
@@ -59,7 +72,14 @@ export async function DELETE(request: NextRequest) {
 
       const slots = data.slots.map((s) =>
         Number(s.id) === slotId
-          ? { id: s.id, imageUrl: null, createdAt: null, discordNick: null }
+          ? {
+              id: s.id,
+              imageUrl: null,
+              createdAt: null,
+              discordNick: null,
+              ownerDiscordId: null,
+              ownerDiscordUsername: null,
+            }
           : s
       );
       await saveSlots({

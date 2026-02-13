@@ -10,6 +10,7 @@ import {
   } from "@/lib/types";
 import { DRAGON_FILENAMES, getDragonUrl } from "@/lib/dragons";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 
 let assignInFlight = false;
 const ROULETTE_ITEM_SIZE = 96;
@@ -88,13 +89,13 @@ export function WallGrid() {
   const [rouletteRolling, setRouletteRolling] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [sprayFx, setSprayFx] = useState<{ slotId: number; nonce: number } | null>(null);
-  const [showNickPrompt, setShowNickPrompt] = useState(false);
+  const [showAssignConfirm, setShowAssignConfirm] = useState(false);
   const [selectedDragonUrl, setSelectedDragonUrl] = useState<string | null>(null);
-  const [discordNick, setDiscordNick] = useState("");
-  const [nickError, setNickError] = useState<string | null>(null);
   const [pendingRevealSlots, setPendingRevealSlots] = useState<Record<number, true>>({});
   const revealTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const rouletteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { data: session } = useSession();
+  const currentDiscordId = session?.user?.id ?? null;
 
   const fetchSlots = useCallback(async () => {
     const controller = new AbortController();
@@ -296,26 +297,28 @@ export function WallGrid() {
       setSelectedDragonUrl(winnerUrl);
       rouletteTimerRef.current = setTimeout(() => {
         setShowRandomRoulette(false);
-        setShowNickPrompt(true);
-        setNickError(null);
+        setShowAssignConfirm(true);
         rouletteTimerRef.current = null;
       }, ROULETTE_RESULT_MS);
     }, ROULETTE_SPIN_MS + 200);
   }, [assigning, rouletteRolling, uploading]);
 
   const handleAssignDragon = useCallback(
-    async (imageUrl: string, nick: string) => {
+    async (imageUrl: string) => {
       if (assignInFlight) return;
+      if (!currentDiscordId) {
+        setUploadError("Сначала подключите Discord через кнопку Connect Discord");
+        return;
+      }
       assignInFlight = true;
       setUploadError(null);
-      setNickError(null);
       setAssigning(true);
       setUploadingId(null);
       try {
         const res = await fetch("/api/assign-slot", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageUrl, discordNick: nick }),
+          body: JSON.stringify({ imageUrl }),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -329,9 +332,8 @@ export function WallGrid() {
           slots?: { id: number; imageUrl: string | null; createdAt: string | null }[];
           updatedAt?: string;
         };
-        setShowNickPrompt(false);
+        setShowAssignConfirm(false);
         setSelectedDragonUrl(null);
-        setDiscordNick("");
         if (payload.slots && Array.isArray(payload.slots) && payload.updatedAt) {
           setData({ slots: payload.slots, updatedAt: payload.updatedAt });
         } else {
@@ -347,18 +349,13 @@ export function WallGrid() {
         setUploadingId(null);
       }
     },
-    [beginSprayReveal, fetchSlots]
+    [beginSprayReveal, currentDiscordId, fetchSlots]
   );
 
   const confirmDragonChoice = useCallback(async () => {
     if (!selectedDragonUrl) return;
-    const nick = discordNick.trim();
-    if (!nick) {
-      setNickError("Введите ник в Discord");
-      return;
-    }
-    await handleAssignDragon(selectedDragonUrl, nick);
-  }, [discordNick, handleAssignDragon, selectedDragonUrl]);
+    await handleAssignDragon(selectedDragonUrl);
+  }, [handleAssignDragon, selectedDragonUrl]);
 
   const handleDelete = useCallback(
     async (slotId: number) => {
@@ -383,7 +380,14 @@ export function WallGrid() {
           if (!prev) return prev;
           const slots = prev.slots.map((s) =>
             Number(s.id) === Number(slotId)
-              ? { id: s.id, imageUrl: null, createdAt: null }
+              ? {
+                  id: s.id,
+                  imageUrl: null,
+                  createdAt: null,
+                  discordNick: null,
+                  ownerDiscordId: null,
+                  ownerDiscordUsername: null,
+                }
               : s
           );
           return { ...prev, slots, updatedAt: new Date().toISOString() };
@@ -530,10 +534,9 @@ export function WallGrid() {
                       e.preventDefault();
                       e.stopPropagation();
                       if (assignInFlight) return;
-                      setSelectedDragonUrl(imageUrl);
                       setShowDragonList(false);
-                      setShowNickPrompt(true);
-                      setNickError(null);
+                      setSelectedDragonUrl(imageUrl);
+                      setShowAssignConfirm(true);
                     }}
                     disabled={assigning}
                     className="relative aspect-square rounded-lg overflow-hidden border-2 border-amber-700/50 hover:border-amber-700 hover:shadow-lg transition-all disabled:opacity-60 disabled:pointer-events-none focus:outline-none focus:ring-2 focus:ring-amber-600"
@@ -557,37 +560,28 @@ export function WallGrid() {
         </div>
       )}
 
-      {showNickPrompt && (
+      {showAssignConfirm && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => !assigning && setShowNickPrompt(false)}
+          onClick={() => !assigning && setShowAssignConfirm(false)}
           role="dialog"
           aria-modal="true"
-          aria-label="Введите Discord ник"
+          aria-label="Подтверждение выбора дракона"
         >
           <div
             className="bg-stone-100 rounded-xl shadow-xl max-w-md w-full p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-semibold text-stone-800 mb-3">
-              Укажите ваш Discord ник
+              Подтвердите выбор дракона
             </h2>
-            <input
-              type="text"
-              value={discordNick}
-              onChange={(e) => {
-                setDiscordNick(e.target.value);
-                if (nickError) setNickError(null);
-              }}
-              placeholder="Например: user#1234"
-              disabled={assigning}
-              className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-800 outline-none focus:ring-2 focus:ring-amber-600"
-            />
-            {nickError && <p className="text-red-600 text-sm mt-2">{nickError}</p>}
+            <p className="text-stone-600 text-sm">
+              Ник Discord подставится автоматически из подключенного аккаунта.
+            </p>
             <div className="mt-5 flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => !assigning && setShowNickPrompt(false)}
+                onClick={() => !assigning && setShowAssignConfirm(false)}
                 disabled={assigning}
                 className="rounded-lg bg-stone-300 px-4 py-2 text-stone-800 font-medium hover:bg-stone-400 disabled:opacity-60"
               >
@@ -650,6 +644,11 @@ export function WallGrid() {
                       isLoading={uploadingId === slot.id}
                       onDelete={handleDelete}
                       isDeleting={deletingId === slot.id}
+                      canDelete={
+                        !!slot.imageUrl &&
+                        !!currentDiscordId &&
+                        slot.ownerDiscordId === currentDiscordId
+                      }
                       isRevealing={!!pendingRevealSlots[Number(slot.id)]}
                     />
                   </div>

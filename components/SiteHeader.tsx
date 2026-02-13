@@ -2,11 +2,14 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { signIn, signOut, useSession } from "next-auth/react";
 
 const LOGO_GIF = "/images/1437826532855906415.gif";
 
 export function SiteHeader() {
   const [showAbout, setShowAbout] = useState(false);
+  const { data: session, status } = useSession();
+  const isAuthed = status === "authenticated";
 
   return (
     <>
@@ -31,14 +34,25 @@ export function SiteHeader() {
               Raiku Graffiti
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowAbout(true)}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-stone-700 hover:bg-white/10 transition-colors"
-            style={{ color: "#9c64fb" }}
-          >
-            О сайте
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => (isAuthed ? signOut() : signIn("discord"))}
+              disabled={status === "loading"}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-stone-700 hover:bg-white/10 transition-colors disabled:opacity-60"
+              style={{ color: "#9c64fb" }}
+            >
+              {isAuthed ? `Disconnect @${session?.user?.name ?? "Discord"}` : "Connect Discord"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAbout(true)}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-stone-700 hover:bg-white/10 transition-colors"
+              style={{ color: "#9c64fb" }}
+            >
+              О сайте
+            </button>
+          </div>
         </div>
       </header>
 

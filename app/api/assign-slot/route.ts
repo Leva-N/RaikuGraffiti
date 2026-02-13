@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthSession } from "@/auth";
 import { getSlotsForWrite, saveSlots, getFreeSlotIds, withSlotsWriteLock } from "@/lib/db";
 import { appendRow, MAX_SLOTS } from "@/lib/types";
 import { hasBlobToken } from "@/lib/blob-token";
@@ -16,7 +17,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      let body: { imageUrl?: string; discordNick?: string };
+      const session = await getAuthSession();
+      const discordUserId = session?.user?.id;
+      if (!discordUserId) {
+        return NextResponse.json({ error: "Сначала подключите Discord" }, { status: 401 });
+      }
+      const discordUsername = session.user?.name?.trim() || "Discord User";
+
+      let body: { imageUrl?: string };
       try {
         body = await request.json();
       } catch {
@@ -24,7 +32,6 @@ export async function POST(request: NextRequest) {
       }
 
       const imageUrl = body?.imageUrl;
-      const discordNick = typeof body?.discordNick === "string" ? body.discordNick.trim() : null;
       if (typeof imageUrl !== "string" || !imageUrl.trim()) {
         return NextResponse.json({ error: "Укажите imageUrl" }, { status: 400 });
       }
@@ -63,7 +70,14 @@ export async function POST(request: NextRequest) {
 
       const slots = data.slots.map((s) =>
         Number(s.id) === Number(slotId)
-          ? { id: s.id, imageUrl: imageUrl.trim(), createdAt, discordNick: discordNick || null }
+          ? {
+              id: s.id,
+              imageUrl: imageUrl.trim(),
+              createdAt,
+              discordNick: discordUsername,
+              ownerDiscordId: discordUserId,
+              ownerDiscordUsername: discordUsername,
+            }
           : s
       );
 

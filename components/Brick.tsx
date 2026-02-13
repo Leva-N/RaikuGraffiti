@@ -8,6 +8,8 @@ export type BrickSlot = {
   imageUrl: string | null;
   createdAt: string | null;
   discordNick?: string | null;
+  ownerDiscordId?: string | null;
+  ownerDiscordUsername?: string | null;
 };
 
 type BrickProps = {
@@ -15,11 +17,19 @@ type BrickProps = {
   isLoading?: boolean;
   onDelete?: (slotId: number) => void;
   isDeleting?: boolean;
+  canDelete?: boolean;
   /** Показывать фото с анимацией «постепенного закрашивания» (в такт граффити) */
   isRevealing?: boolean;
 };
 
-export function Brick({ slot, isLoading, onDelete, isDeleting, isRevealing }: BrickProps) {
+export function Brick({
+  slot,
+  isLoading,
+  onDelete,
+  isDeleting,
+  canDelete,
+  isRevealing,
+}: BrickProps) {
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const hasImage = Boolean(slot.imageUrl) && !imgError;
@@ -62,7 +72,7 @@ export function Brick({ slot, isLoading, onDelete, isDeleting, isRevealing }: Br
               <span className="brick-nick-shimmer">{slot.discordNick}</span>
             </div>
           )}
-          {onDelete && (
+          {onDelete && canDelete && (
             <button
               type="button"
               onClick={(e) => {

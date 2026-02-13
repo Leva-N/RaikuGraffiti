@@ -22,6 +22,14 @@ function normalizeSlots(data: SlotsData): SlotsData {
     imageUrl: typeof s.imageUrl === "string" && s.imageUrl.trim() ? s.imageUrl.trim() : null,
     createdAt: s.createdAt ?? null,
     discordNick: typeof s.discordNick === "string" && s.discordNick.trim() ? s.discordNick.trim() : null,
+    ownerDiscordId:
+      typeof s.ownerDiscordId === "string" && s.ownerDiscordId.trim()
+        ? s.ownerDiscordId.trim()
+        : null,
+    ownerDiscordUsername:
+      typeof s.ownerDiscordUsername === "string" && s.ownerDiscordUsername.trim()
+        ? s.ownerDiscordUsername.trim()
+        : null,
   }));
   return { ...data, slots };
 }

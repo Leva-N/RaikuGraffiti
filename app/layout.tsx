@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Providers } from "@/components/Providers";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
@@ -18,17 +19,19 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className="antialiased min-h-screen">
-        <div
-          className="min-h-screen bg-no-repeat bg-center"
-          style={{
-            backgroundImage: `url('${SITE_BG}')`,
-            backgroundSize: "cover",
-            backgroundAttachment: "scroll",
-          }}
-        >
-          <SiteHeader />
-          {children}
-        </div>
+        <Providers>
+          <div
+            className="min-h-screen bg-no-repeat bg-center"
+            style={{
+              backgroundImage: `url('${SITE_BG}')`,
+              backgroundSize: "cover",
+              backgroundAttachment: "scroll",
+            }}
+          >
+            <SiteHeader />
+            {children}
+          </div>
+        </Providers>
       </body>
     </html>
   );
