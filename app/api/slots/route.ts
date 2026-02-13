@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSlots, saveSlots } from "@/lib/db";
+import { getSlots, getSlotsForWrite, saveSlots } from "@/lib/db";
 import { deleteImage } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +7,9 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const data = await getSlots();
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: { "Cache-Control": "no-store, max-age=0" },
+    });
   } catch (e) {
     console.error("GET /api/slots", e);
     return NextResponse.json(
@@ -29,34 +31,53 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Неверный номер слота" }, { status: 400 });
     }
 
-    const data = await getSlots();
-    const slot = data.slots.find((s) => s.id === slotId);
-    if (!slot) {
+    const data = await getSlotsForWrite();
+    const slotIndex = data.slots.findIndex((s) => Number(s.id) === slotId);
+    if (slotIndex === -1) {
       return NextResponse.json({ error: "Слот не найден" }, { status: 404 });
     }
-    if (!slot.imageUrl) {
+    const slot = data.slots[slotIndex];
+    const hasPhoto =
+      typeof slot.imageUrl === "string" && slot.imageUrl.trim().length > 0;
+    if (!hasPhoto) {
       return NextResponse.json({ error: "В слоте нет фото" }, { status: 400 });
     }
 
-    try {
-      await deleteImage(slot.imageUrl);
-    } catch (err) {
-      console.error("deleteImage", err);
+    const isBlobUrl =
+      typeof slot.imageUrl === "string" &&
+      slot.imageUrl.startsWith("http") &&
+      slot.imageUrl.includes("blob.vercel-storage.com");
+    if (isBlobUrl) {
+      try {
+        await deleteImage(slot.imageUrl);
+      } catch (err) {
+        console.error("deleteImage", err);
+      }
     }
 
     const slots = data.slots.map((s) =>
-      s.id === slotId ? { id: s.id, imageUrl: null, createdAt: null } : s
+      Number(s.id) === slotId ? { id: s.id, imageUrl: null, createdAt: null } : s
     );
     await saveSlots({
       slots,
       updatedAt: new Date().toISOString(),
     });
 
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
+      const verify = await getSlotsForWrite();
+      const slotAfter = verify.slots.find((s) => Number(s.id) === slotId);
+      if (!slotAfter?.imageUrl) {
+        return NextResponse.json({ ok: true, slotId });
+      }
+    }
+
     return NextResponse.json({ ok: true, slotId });
   } catch (e) {
     console.error("DELETE /api/slots", e);
+    const message = e instanceof Error ? e.message : "Не удалось удалить фото";
     return NextResponse.json(
-      { error: "Не удалось удалить фото" },
+      { error: message },
       { status: 500 }
     );
   }
