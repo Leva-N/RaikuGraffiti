@@ -82,8 +82,8 @@ export function Brick({
               }}
               disabled={isDeleting}
               className="absolute top-1 right-1 z-10 w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center text-lg font-bold hover:bg-red-700 disabled:opacity-50 transition-colors shadow-lg pointer-events-auto"
-              title="Удалить фото"
-              aria-label="Удалить фото"
+              title="Delete photo"
+              aria-label="Delete photo"
             >
               {isDeleting ? "…" : "×"}
             </button>

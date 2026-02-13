@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/auth";
 import { getSlots, getSlotsForWrite, saveSlots, withSlotsWriteLock } from "@/lib/db";
 import { deleteImage } from "@/lib/storage";
+import { isAdminDiscordId } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,8 @@ export async function DELETE(request: NextRequest) {
       if (!discordUserId) {
         return NextResponse.json({ error: "Требуется авторизация Discord" }, { status: 401 });
       }
-      if (!slot.ownerDiscordId || slot.ownerDiscordId !== discordUserId) {
+      const isAdmin = isAdminDiscordId(discordUserId);
+      if (!isAdmin && (!slot.ownerDiscordId || slot.ownerDiscordId !== discordUserId)) {
         return NextResponse.json(
           { error: "Можно удалять только свои фотографии" },
           { status: 403 }

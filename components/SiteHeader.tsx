@@ -42,7 +42,7 @@ export function SiteHeader() {
               className="rounded-lg px-4 py-2 text-sm font-medium text-stone-700 hover:bg-white/10 transition-colors disabled:opacity-60"
               style={{ color: "#9c64fb" }}
             >
-              {isAuthed ? `Disconnect @${session?.user?.name ?? "Discord"}` : "Connect Discord"}
+              {isAuthed ? `Disconnect @${session?.user?.name ?? "Discord"}` : "Connect to Discord"}
             </button>
             <button
               type="button"
@@ -50,7 +50,7 @@ export function SiteHeader() {
               className="rounded-lg px-4 py-2 text-sm font-medium text-stone-700 hover:bg-white/10 transition-colors"
               style={{ color: "#9c64fb" }}
             >
-              О сайте
+              About
             </button>
           </div>
         </div>
@@ -62,19 +62,19 @@ export function SiteHeader() {
           onClick={() => setShowAbout(false)}
           role="dialog"
           aria-modal="true"
-          aria-label="О сайте"
+          aria-label="About"
         >
           <div
             className="bg-stone-100/95 backdrop-blur-sm rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-auto p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-stone-800">О сайте</h2>
+              <h2 className="text-xl font-semibold text-stone-800">About</h2>
               <button
                 type="button"
                 onClick={() => setShowAbout(false)}
                 className="text-stone-500 hover:text-stone-800 text-2xl leading-none p-1"
-                aria-label="Закрыть"
+                aria-label="Close"
               >
                 ×
               </button>

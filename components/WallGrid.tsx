@@ -11,6 +11,7 @@ import {
 import { DRAGON_FILENAMES, getDragonUrl } from "@/lib/dragons";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { isAdminDiscordId } from "@/lib/permissions";
 
 let assignInFlight = false;
 const ROULETTE_ITEM_SIZE = 96;
@@ -91,11 +92,22 @@ export function WallGrid() {
   const [sprayFx, setSprayFx] = useState<{ slotId: number; nonce: number } | null>(null);
   const [showAssignConfirm, setShowAssignConfirm] = useState(false);
   const [selectedDragonUrl, setSelectedDragonUrl] = useState<string | null>(null);
+  const [connectHint, setConnectHint] = useState<string | null>(null);
   const [pendingRevealSlots, setPendingRevealSlots] = useState<Record<number, true>>({});
   const revealTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const rouletteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { data: session } = useSession();
   const currentDiscordId = session?.user?.id ?? null;
+  const isAdmin = isAdminDiscordId(currentDiscordId);
+
+  const requireDiscordConnection = useCallback(() => {
+    if (currentDiscordId) {
+      setConnectHint(null);
+      return true;
+    }
+    setConnectHint("Connect to Discord");
+    return false;
+  }, [currentDiscordId]);
 
   const fetchSlots = useCallback(async () => {
     const controller = new AbortController();
@@ -159,6 +171,12 @@ export function WallGrid() {
     };
   }, []);
 
+  useEffect(() => {
+    if (currentDiscordId) {
+      setConnectHint(null);
+    }
+  }, [currentDiscordId]);
+
   const beginSprayReveal = useCallback((slotId: number) => {
     const numericId = Number(slotId);
     setPendingRevealSlots((prev) => ({ ...prev, [numericId]: true }));
@@ -179,6 +197,7 @@ export function WallGrid() {
     async (file: File) => {
       if (uploading) return;
       setUploadError(null);
+      setConnectHint(null);
       setUploading(true);
 
       try {
@@ -251,6 +270,7 @@ export function WallGrid() {
   const startRandomRoulette = useCallback(() => {
     if (assignInFlight || assigning || uploading || rouletteRolling) return;
     setUploadError(null);
+    setConnectHint(null);
     setShowDragonList(false);
 
     const winnerFilename = DRAGON_FILENAMES[getUniformRandomInt(DRAGON_FILENAMES.length)];
@@ -307,7 +327,7 @@ export function WallGrid() {
     async (imageUrl: string) => {
       if (assignInFlight) return;
       if (!currentDiscordId) {
-        setUploadError("Сначала подключите Discord через кнопку Connect Discord");
+        setUploadError("Connect to Discord first");
         return;
       }
       assignInFlight = true;
@@ -361,6 +381,7 @@ export function WallGrid() {
     async (slotId: number) => {
       if (!data || deletingId !== null) return;
       setUploadError(null);
+      setConnectHint(null);
       setDeletingId(slotId);
       try {
         const res = await fetch(`/api/slots?slotId=${slotId}`, {
@@ -423,20 +444,31 @@ export function WallGrid() {
         />
         <button
           type="button"
-          onClick={() => setShowDragonList(true)}
+          onClick={() => {
+            if (!requireDiscordConnection()) return;
+            setShowDragonList(true);
+          }}
           disabled={uploading || assigning}
-          className="rounded-lg bg-amber-700/90 px-4 py-2 text-white font-medium shadow-md hover:bg-amber-800 disabled:pointer-events-none disabled:opacity-60"
+          className="rounded-lg px-4 py-2 font-medium shadow-md disabled:pointer-events-none disabled:opacity-60"
+          style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
         >
-          {uploading ? "Загрузка..." : "Выбрать своего дракона"}
+          {uploading ? "Uploading..." : "Choose your dragon"}
         </button>
         <button
           type="button"
-          onClick={startRandomRoulette}
+          onClick={() => {
+            if (!requireDiscordConnection()) return;
+            startRandomRoulette();
+          }}
           disabled={uploading || assigning || rouletteRolling}
-          className="rounded-lg bg-amber-700/90 px-4 py-2 text-white font-medium shadow-md hover:bg-amber-800 disabled:pointer-events-none disabled:opacity-60"
+          className="rounded-lg px-4 py-2 font-medium shadow-md disabled:pointer-events-none disabled:opacity-60"
+          style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
         >
-          {rouletteRolling ? "Рулетка крутится..." : "Выбрать случайного дракона"}
+          {rouletteRolling ? "Roulette is spinning..." : "Choose random dragon"}
         </button>
+        {connectHint && (
+          <p className="text-red-600 text-sm font-medium w-full text-center">{connectHint}</p>
+        )}
         {uploadError && (
           <p className="text-red-600 text-sm font-medium w-full text-center">{uploadError}</p>
         )}
@@ -447,14 +479,14 @@ export function WallGrid() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           role="dialog"
           aria-modal="true"
-          aria-label="Рулетка случайного дракона"
+          aria-label="Random dragon roulette"
         >
           <div
             className="bg-stone-100 rounded-xl shadow-xl max-w-2xl w-full p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-semibold text-stone-800 text-center mb-4">
-              Рулетка драконов
+              Dragon roulette
             </h2>
             <div className="relative mx-auto w-full max-w-[520px] rounded-xl border border-stone-300 bg-stone-200/70 p-3 overflow-hidden">
               <div
@@ -485,7 +517,7 @@ export function WallGrid() {
                   >
                     <Image
                       src={url}
-                      alt="Дракон в рулетке"
+                      alt="Dragon in roulette"
                       fill
                       sizes="96px"
                       className="object-cover"
@@ -505,20 +537,20 @@ export function WallGrid() {
           onClick={() => !assigning && setShowDragonList(false)}
           role="dialog"
           aria-modal="true"
-          aria-label="Список драконов"
+          aria-label="Dragon list"
         >
           <div
             className="bg-stone-100 rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-stone-800">Выберите своего дракона</h2>
+              <h2 className="text-xl font-semibold text-stone-800">Choose your dragon</h2>
               <button
                 type="button"
                 onClick={() => !assigning && setShowDragonList(false)}
                 disabled={assigning}
                 className="text-stone-500 hover:text-stone-800 text-2xl leading-none disabled:opacity-50"
-                aria-label="Закрыть"
+                aria-label="Close"
               >
                 ×
               </button>
@@ -543,7 +575,7 @@ export function WallGrid() {
                   >
                     <Image
                       src={imageUrl}
-                      alt="Дракон"
+                      alt="Dragon"
                       fill
                       sizes="(max-width: 640px) 50vw, 200px"
                       className="object-cover"
@@ -554,7 +586,7 @@ export function WallGrid() {
               })}
             </div>
             {assigning && (
-              <p className="text-center text-stone-600 mt-4">Добавляем на стену…</p>
+              <p className="text-center text-stone-600 mt-4">Adding to the wall...</p>
             )}
           </div>
         </div>
@@ -566,17 +598,17 @@ export function WallGrid() {
           onClick={() => !assigning && setShowAssignConfirm(false)}
           role="dialog"
           aria-modal="true"
-          aria-label="Подтверждение выбора дракона"
+          aria-label="Confirm dragon choice"
         >
           <div
             className="bg-stone-100 rounded-xl shadow-xl max-w-md w-full p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-semibold text-stone-800 mb-3">
-              Подтвердите выбор дракона
+              Confirm your dragon choice
             </h2>
             <p className="text-stone-600 text-sm">
-              Ник Discord подставится автоматически из подключенного аккаунта.
+              Your Discord nickname will be taken from the connected account automatically.
             </p>
             <div className="mt-5 flex justify-end gap-3">
               <button
@@ -585,7 +617,7 @@ export function WallGrid() {
                 disabled={assigning}
                 className="rounded-lg bg-stone-300 px-4 py-2 text-stone-800 font-medium hover:bg-stone-400 disabled:opacity-60"
               >
-                Отмена
+                Cancel
               </button>
               <button
                 type="button"
@@ -593,7 +625,7 @@ export function WallGrid() {
                 disabled={assigning}
                 className="rounded-lg bg-amber-700 px-4 py-2 text-white font-medium hover:bg-amber-800 disabled:opacity-60"
               >
-                {assigning ? "Сохраняем..." : "Подтвердить выбор"}
+                {assigning ? "Saving..." : "Confirm choice"}
               </button>
             </div>
           </div>
@@ -647,7 +679,7 @@ export function WallGrid() {
                       canDelete={
                         !!slot.imageUrl &&
                         !!currentDiscordId &&
-                        slot.ownerDiscordId === currentDiscordId
+                        (slot.ownerDiscordId === currentDiscordId || isAdmin)
                       }
                       isRevealing={!!pendingRevealSlots[Number(slot.id)]}
                     />

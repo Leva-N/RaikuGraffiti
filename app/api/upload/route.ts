@@ -55,6 +55,15 @@ export async function POST(request: NextRequest) {
       }
 
       let data = await getSlotsForWrite();
+      const existingUserSlot = data.slots.find(
+        (slot) => Boolean(slot.imageUrl) && slot.ownerDiscordId === discordUserId
+      );
+      if (existingUserSlot) {
+        return NextResponse.json(
+          { error: "You already have a dragon on the wall. Delete it to choose a new one." },
+          { status: 409 }
+        );
+      }
       let freeIds = await getFreeSlotIds(data.slots);
 
       if (freeIds.length === 0) {
