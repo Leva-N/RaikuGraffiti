@@ -26,24 +26,33 @@ const THEME_HINTS: Record<Language, { dark: string; light: string }> = {
 export function SiteHeader() {
   const [showAbout, setShowAbout] = useState(false);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { data: session, status } = useSession();
   const isAuthed = status === "authenticated";
   const { language, setLanguage, t } = useLanguage();
   const { isDark, toggleTheme } = useTheme();
   const languageMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
   const activeLanguage = LANGUAGE_OPTIONS.find((option) => option.code === language) ?? LANGUAGE_OPTIONS[0];
   const themeHint = isDark ? THEME_HINTS[language].light : THEME_HINTS[language].dark;
 
   useEffect(() => {
-    if (!showLanguageMenu) return;
+    if (!showLanguageMenu && !showMobileMenu) return;
     const handleOutsideClick = (event: MouseEvent) => {
-      if (!languageMenuRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const clickedLanguageMenu = languageMenuRef.current?.contains(target);
+      const clickedMobileMenu = mobileMenuRef.current?.contains(target);
+      if (showLanguageMenu && !clickedLanguageMenu && !clickedMobileMenu) {
+        setShowLanguageMenu(false);
+      }
+      if (showMobileMenu && !clickedMobileMenu) {
+        setShowMobileMenu(false);
         setShowLanguageMenu(false);
       }
     };
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, [showLanguageMenu]);
+  }, [showLanguageMenu, showMobileMenu]);
 
   return (
     <>
@@ -73,7 +82,132 @@ export function SiteHeader() {
               Raiku Graffiti
             </span>
           </div>
-          <div className="flex w-full sm:w-auto items-center justify-end gap-1.5 sm:gap-2">
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+            <div className="relative min-[1139px]:hidden" ref={mobileMenuRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileMenu((prev) => !prev);
+                  setShowLanguageMenu(false);
+                }}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#9c64fb]/60 bg-black/20 text-xl leading-none"
+                style={{ color: "#9c64fb" }}
+                aria-label="Open menu"
+                aria-expanded={showMobileMenu}
+              >
+                ☰
+              </button>
+              {showMobileMenu && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-stone-200 bg-stone-100/95 p-2 shadow-xl backdrop-blur-sm">
+                  <div className="flex flex-col gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMobileMenu(false);
+                        setShowLanguageMenu(false);
+                        if (isAuthed) {
+                          signOut();
+                          return;
+                        }
+                        signIn("discord");
+                      }}
+                      disabled={status === "loading"}
+                      className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-white/10 transition-colors disabled:opacity-60"
+                      style={{ color: "#9c64fb" }}
+                    >
+                      {isAuthed
+                        ? `${t.header.disconnectDiscord} @${session?.user?.name ?? "Discord"}`
+                        : t.header.connectDiscord}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowLanguageMenu((prev) => !prev)}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/10"
+                      style={{ color: "#9c64fb" }}
+                      aria-label={t.header.languageMenuAria}
+                      aria-expanded={showLanguageMenu}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Image
+                          src={getFlagIconUrl(activeLanguage.flag)}
+                          alt=""
+                          width={18}
+                          height={14}
+                          className="h-[14px] w-[18px] rounded-sm object-cover"
+                          unoptimized
+                        />
+                        <span>{activeLanguage.label}</span>
+                      </span>
+                      <span>{showLanguageMenu ? "▴" : "▾"}</span>
+                    </button>
+                    {showLanguageMenu && (
+                      <div className="rounded-lg border border-stone-200 bg-white/70 p-1">
+                        {LANGUAGE_OPTIONS.map((option) => {
+                          const isActive = option.code === language;
+                          return (
+                            <button
+                              key={`mobile-${option.code}`}
+                              type="button"
+                              onClick={() => {
+                                setLanguage(option.code);
+                                setShowLanguageMenu(false);
+                                setShowMobileMenu(false);
+                              }}
+                              className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-stone-200/70"
+                            >
+                              <span className="flex items-center gap-2">
+                                <Image
+                                  src={getFlagIconUrl(option.flag)}
+                                  alt=""
+                                  width={18}
+                                  height={14}
+                                  className="h-[14px] w-[18px] rounded-sm object-cover"
+                                  unoptimized
+                                />
+                                <span style={{ color: "#9c64fb" }}>{option.label}</span>
+                              </span>
+                              <span style={{ color: isActive ? "#9dbf2f" : "#9c64fb", fontWeight: 700 }}>
+                                {isActive ? "●" : ""}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleTheme();
+                        setShowMobileMenu(false);
+                        setShowLanguageMenu(false);
+                      }}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-white/10 transition-colors"
+                      style={{ color: "#9c64fb" }}
+                      aria-label={themeHint}
+                      title={themeHint}
+                    >
+                      <span>{themeHint}</span>
+                      <span aria-hidden className="text-base">
+                        {isDark ? "☀" : "☾"}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAbout(true);
+                        setShowMobileMenu(false);
+                        setShowLanguageMenu(false);
+                      }}
+                      className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-white/10 transition-colors"
+                      style={{ color: "#9c64fb" }}
+                    >
+                      {t.header.about}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="hidden w-full items-center justify-end gap-1.5 sm:gap-2 min-[1139px]:w-auto min-[1139px]:flex">
             <button
               type="button"
               onClick={() => (isAuthed ? signOut() : signIn("discord"))}
@@ -165,6 +299,7 @@ export function SiteHeader() {
             >
               {t.header.about}
             </button>
+            </div>
           </div>
         </div>
       </header>

@@ -7,8 +7,14 @@
   --background: #fff8ed;
   --wall-brick: #a0522d;
   --wall-mortar: #8b7355;
-  --site-bg-light: url("/images/ChatGPT%20Image%2013%20%D1%84%D0%B5%D0%B2%D1%80.%202026%20%D0%B3.%2C%2015_47_29.png");
-  --site-bg-dark: url("/images/ChatGPT%20Image%2015%20%D1%84%D0%B5%D0%B2%D1%80.%202026%20%D0%B3.%2C%2000_28_57.jpeg");
+  --site-bg-light: image-set(
+    url("/images/ChatGPT%20Image%2013%20%D1%84%D0%B5%D0%B2%D1%80.%202026%20%D0%B3.%2C%2015_47_29.avif") type("image/avif"),
+    url("/images/ChatGPT%20Image%2013%20%D1%84%D0%B5%D0%B2%D1%80.%202026%20%D0%B3.%2C%2015_47_29.png") type("image/png")
+  );
+  --site-bg-dark: image-set(
+    url("/images/ChatGPT%20Image%2015%20%D1%84%D0%B5%D0%B2%D1%80.%202026%20%D0%B3.%2C%2000_28_57.avif") type("image/avif"),
+    url("/images/ChatGPT%20Image%2015%20%D1%84%D0%B5%D0%B2%D1%80.%202026%20%D0%B3.%2C%2000_28_57.jpeg") type("image/jpeg")
+  );
 }
 
 @media (prefers-color-scheme: dark) {

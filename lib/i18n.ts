@@ -92,7 +92,7 @@ export const translations: Record<Language, Translation> = {
   en: {
     siteTitle: "Raiku Graffiti",
     shareTitle: "Raiku Graffiti",
-    shareDescription: "Leave your mark. Become part of the Raiku",
+    shareDescription: "Вифровой арт-проект в стиле современного граффити в честь проекта Raiku",
     header: {
       foreverInHeart: "Forever in Raiku's Heart",
       connectDiscord: "Connect to Discord",
@@ -157,7 +157,7 @@ export const translations: Record<Language, Translation> = {
   ru: {
     siteTitle: "Raiku Graffiti",
     shareTitle: "Raiku Graffiti",
-    shareDescription: "Leave your mark. Become part of the Raiku",
+    shareDescription: "Вифровой арт-проект в стиле современного граффити в честь проекта Raiku",
     header: {
       foreverInHeart: "В сердце Raiku навсегда",
       connectDiscord: "Подключить Discord",
@@ -222,7 +222,7 @@ export const translations: Record<Language, Translation> = {
   ja: {
     siteTitle: "Raiku Graffiti",
     shareTitle: "Raiku Graffiti",
-    shareDescription: "Leave your mark. Become part of the Raiku",
+    shareDescription: "Вифровой арт-проект в стиле современного граффити в честь проекта Raiku",
     header: {
       foreverInHeart: "Raikuの心に永遠に",
       connectDiscord: "Discordに接続",
@@ -287,7 +287,7 @@ export const translations: Record<Language, Translation> = {
   zh: {
     siteTitle: "Raiku Graffiti",
     shareTitle: "Raiku Graffiti",
-    shareDescription: "Leave your mark. Become part of the Raiku",
+    shareDescription: "Вифровой арт-проект в стиле современного граффити в честь проекта Raiku",
     header: {
       foreverInHeart: "永远在 Raiku 心中",
       connectDiscord: "连接 Discord",
@@ -352,7 +352,7 @@ export const translations: Record<Language, Translation> = {
   vi: {
     siteTitle: "Raiku Graffiti",
     shareTitle: "Raiku Graffiti",
-    shareDescription: "Leave your mark. Become part of the Raiku",
+    shareDescription: "Вифровой арт-проект в стиле современного граффити в честь проекта Raiku",
     header: {
       foreverInHeart: "Mãi mãi trong tim Raiku",
       connectDiscord: "Kết nối Discord",
@@ -417,7 +417,7 @@ export const translations: Record<Language, Translation> = {
   hi: {
     siteTitle: "Raiku Graffiti",
     shareTitle: "Raiku Graffiti",
-    shareDescription: "Leave your mark. Become part of the Raiku",
+    shareDescription: "Вифровой арт-проект в стиле современного граффити в честь проекта Raiku",
     header: {
       foreverInHeart: "Raiku के दिल में हमेशा",
       connectDiscord: "Discord से जुड़ें",
@@ -482,7 +482,7 @@ export const translations: Record<Language, Translation> = {
   id: {
     siteTitle: "Raiku Graffiti",
     shareTitle: "Raiku Graffiti",
-    shareDescription: "Leave your mark. Become part of the Raiku",
+    shareDescription: "Вифровой арт-проект в стиле современного граффити в честь проекта Raiku",
     header: {
       foreverInHeart: "Selamanya di hati Raiku",
       connectDiscord: "Hubungkan Discord",
@@ -547,7 +547,7 @@ export const translations: Record<Language, Translation> = {
   es: {
     siteTitle: "Raiku Graffiti",
     shareTitle: "Raiku Graffiti",
-    shareDescription: "Leave your mark. Become part of the Raiku",
+    shareDescription: "Вифровой арт-проект в стиле современного граффити в честь проекта Raiku",
     header: {
       foreverInHeart: "Para siempre en el corazón de Raiku",
       connectDiscord: "Conectar Discord",
@@ -612,7 +612,7 @@ export const translations: Record<Language, Translation> = {
   ar: {
     siteTitle: "Raiku Graffiti",
     shareTitle: "Raiku Graffiti",
-    shareDescription: "Leave your mark. Become part of the Raiku",
+    shareDescription: "Вифровой арт-проект в стиле современного граффити в честь проекта Raiku",
     header: {
       foreverInHeart: "إلى الأبد في قلب Raiku",
       connectDiscord: "اتصل بـ Discord",

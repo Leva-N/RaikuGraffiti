@@ -13,6 +13,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(normalizedSiteUrl),
   title: translations.en.shareTitle,
   description: translations.en.shareDescription,
+  icons: {
+    icon: "/images/favi.jpg",
+    shortcut: "/images/favi.jpg",
+    apple: "/images/favi.jpg",
+  },
   openGraph: {
     title: translations.en.shareTitle,
     description: translations.en.shareDescription,

@@ -3,7 +3,7 @@ export const WALL_COLUMNS = 4;
 export const NICHES_PER_IMAGE_ROW = 4;
 export const INITIAL_ROWS = NICHES_PER_IMAGE_ROW;
 export const SLOTS_PER_ROW = WALL_COLUMNS;
-export const MAX_SLOTS = 2000;
+export const MAX_SLOTS = 10000;
 
 export type Slot = {
   id: number;
