@@ -321,3 +321,30 @@ body {
     background-position: 100% center;
   }
 }
+
+.header-heart-shimmer {
+  background: linear-gradient(
+    115deg,
+    #9c64fb 0%,
+    #c0fe38 22%,
+    #9c64fb 50%,
+    #c0fe38 78%,
+    #9c64fb 100%
+  );
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 18px rgba(156, 100, 251, 0.32);
+  animation: headerHeartShimmer 4.8s ease-in-out infinite;
+}
+
+@keyframes headerHeartShimmer {
+  0%,
+  100% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
+}

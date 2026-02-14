@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Brick, type BrickSlot } from "./Brick";
 import type { SlotsData } from "@/lib/types";
 import {
@@ -14,9 +14,6 @@ import { useSession } from "next-auth/react";
 import { isAdminDiscordId } from "@/lib/permissions";
 
 let assignInFlight = false;
-const ROULETTE_ITEM_SIZE = 96;
-const ROULETTE_ITEM_GAP = 12;
-const ROULETTE_ITEM_STEP = ROULETTE_ITEM_SIZE + ROULETTE_ITEM_GAP;
 const ROULETTE_SPIN_MS = 4800;
 const ROULETTE_RESULT_MS = 3000;
 const SLOTS_CACHE_KEY = "raiku_wall_slots_v1";
@@ -93,9 +90,14 @@ export function WallGrid() {
   const [showAssignConfirm, setShowAssignConfirm] = useState(false);
   const [selectedDragonUrl, setSelectedDragonUrl] = useState<string | null>(null);
   const [connectHint, setConnectHint] = useState<string | null>(null);
+  const [publishedSearch, setPublishedSearch] = useState("");
+  const [highlightedSlotId, setHighlightedSlotId] = useState<number | null>(null);
+  const [viewportWidth, setViewportWidth] = useState<number>(0);
   const [pendingRevealSlots, setPendingRevealSlots] = useState<Record<number, true>>({});
   const revealTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const rouletteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const slotRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const { data: session } = useSession();
   const currentDiscordId = session?.user?.id ?? null;
   const isAdmin = isAdminDiscordId(currentDiscordId);
@@ -155,6 +157,21 @@ export function WallGrid() {
   }, [fetchSlots]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const updateViewportWidth = () => setViewportWidth(window.innerWidth);
+    updateViewportWidth();
+    window.addEventListener("resize", updateViewportWidth);
+    return () => window.removeEventListener("resize", updateViewportWidth);
+  }, []);
+
+  const isMobile = viewportWidth > 0 && viewportWidth < 640;
+  const isTablet = viewportWidth >= 640 && viewportWidth < 1024;
+  const displayColumns = isMobile ? 2 : isTablet ? 3 : WALL_COLUMNS;
+  const rouletteItemSize = isMobile ? 72 : 96;
+  const rouletteItemGap = isMobile ? 8 : 12;
+  const rouletteItemStep = rouletteItemSize + rouletteItemGap;
+
+  useEffect(() => {
     if (!sprayFx) return;
     const timer = setTimeout(() => setSprayFx(null), 900);
     return () => clearTimeout(timer);
@@ -167,6 +184,10 @@ export function WallGrid() {
       if (rouletteTimerRef.current) {
         clearTimeout(rouletteTimerRef.current);
         rouletteTimerRef.current = null;
+      }
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+        highlightTimerRef.current = null;
       }
     };
   }, []);
@@ -191,6 +212,20 @@ export function WallGrid() {
       });
       delete revealTimersRef.current[numericId];
     }, 5000);
+  }, []);
+
+  const focusSlot = useCallback((slotId: number) => {
+    const numericSlotId = Number(slotId);
+    const target = slotRefs.current[numericSlotId];
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+    }
+    setHighlightedSlotId(numericSlotId);
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = setTimeout(() => {
+      setHighlightedSlotId((prev) => (prev === numericSlotId ? null : prev));
+      highlightTimerRef.current = null;
+    }, 4500);
   }, []);
 
   const handleFile = useCallback(
@@ -247,6 +282,11 @@ export function WallGrid() {
           };
         });
         if (!data) fetchSlots();
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            focusSlot(updated.slotId);
+          });
+        });
       } catch {
         setUploadError("Ошибка сети или сервера");
       } finally {
@@ -254,7 +294,7 @@ export function WallGrid() {
         setUploadingId(null);
       }
     },
-    [data, uploading, fetchSlots]
+    [data, uploading, fetchSlots, focusSlot]
   );
 
   const onInputChange = useCallback(
@@ -307,7 +347,7 @@ export function WallGrid() {
       requestAnimationFrame(() => {
         setRouletteRolling(true);
         setRouletteDurationMs(ROULETTE_SPIN_MS);
-        setRouletteOffset(-(winnerIndex * ROULETTE_ITEM_STEP));
+        setRouletteOffset(-(winnerIndex * rouletteItemStep));
       });
     });
 
@@ -321,7 +361,7 @@ export function WallGrid() {
         rouletteTimerRef.current = null;
       }, ROULETTE_RESULT_MS);
     }, ROULETTE_SPIN_MS + 200);
-  }, [assigning, rouletteRolling, uploading]);
+  }, [assigning, rouletteRolling, rouletteItemStep, uploading]);
 
   const handleAssignDragon = useCallback(
     async (imageUrl: string) => {
@@ -361,6 +401,11 @@ export function WallGrid() {
         }
         setSprayFx({ slotId: payload.slotId, nonce: Date.now() });
         beginSprayReveal(payload.slotId);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            focusSlot(payload.slotId);
+          });
+        });
       } catch {
         setUploadError("Ошибка сети или сервера");
       } finally {
@@ -369,7 +414,7 @@ export function WallGrid() {
         setUploadingId(null);
       }
     },
-    [beginSprayReveal, currentDiscordId, fetchSlots]
+    [beginSprayReveal, currentDiscordId, fetchSlots, focusSlot]
   );
 
   const confirmDragonChoice = useCallback(async () => {
@@ -428,11 +473,21 @@ export function WallGrid() {
   );
 
   const slots = data?.slots?.length ? data.slots : createEmptySlots();
-  const rowCount = Math.ceil(slots.length / WALL_COLUMNS) || INITIAL_ROWS;
+  const rowCount = Math.ceil(slots.length / displayColumns) || INITIAL_ROWS;
+  const publishedSlots = useMemo(() => slots.filter((slot) => !!slot.imageUrl), [slots]);
+  const normalizedSearch = publishedSearch.trim().toLowerCase();
+  const filteredPublishedSlots = useMemo(() => {
+    if (!normalizedSearch) return publishedSlots;
+    return publishedSlots.filter((slot) => {
+      const nick = (slot.discordNick ?? "").toLowerCase();
+      const username = (slot.ownerDiscordUsername ?? "").toLowerCase();
+      return nick.includes(normalizedSearch) || username.includes(normalizedSearch);
+    });
+  }, [normalizedSearch, publishedSlots]);
 
   return (
     <div className="space-y-4">
-      <div className="relative z-30 flex flex-wrap items-center justify-center gap-3 px-4">
+      <div className="relative z-30 flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-4">
         <input
           ref={fileInputRef}
           type="file"
@@ -449,7 +504,7 @@ export function WallGrid() {
             setShowDragonList(true);
           }}
           disabled={uploading || assigning}
-          className="rounded-lg px-4 py-2 font-medium shadow-md disabled:pointer-events-none disabled:opacity-60"
+          className="w-full sm:w-auto rounded-lg px-4 py-2 text-sm sm:text-base font-medium shadow-md disabled:pointer-events-none disabled:opacity-60"
           style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
         >
           {uploading ? "Uploading..." : "Choose your dragon"}
@@ -461,7 +516,7 @@ export function WallGrid() {
             startRandomRoulette();
           }}
           disabled={uploading || assigning || rouletteRolling}
-          className="rounded-lg px-4 py-2 font-medium shadow-md disabled:pointer-events-none disabled:opacity-60"
+          className="w-full sm:w-auto rounded-lg px-4 py-2 text-sm sm:text-base font-medium shadow-md disabled:pointer-events-none disabled:opacity-60"
           style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
         >
           {rouletteRolling ? "Roulette is spinning..." : "Choose random dragon"}
@@ -473,30 +528,84 @@ export function WallGrid() {
           <p className="text-red-600 text-sm font-medium w-full text-center">{uploadError}</p>
         )}
       </div>
+      <div className="relative z-20 mx-auto w-full max-w-[1400px] px-4">
+        <div className="rounded-xl border border-stone-300/70 bg-stone-100/70 p-3 sm:p-4 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h3 className="w-full sm:w-auto font-semibold text-sm sm:text-base" style={{ color: "#9c64fb" }}>
+              Published dragons quick search
+            </h3>
+            <input
+              type="text"
+              value={publishedSearch}
+              onChange={(e) => setPublishedSearch(e.target.value)}
+              placeholder="Search by Discord nickname"
+              className="min-w-0 w-full sm:min-w-[220px] sm:flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-amber-600"
+            />
+            <span className="text-xs text-stone-600">
+              {filteredPublishedSlots.length} / {publishedSlots.length}
+            </span>
+          </div>
+          {normalizedSearch && (
+            <div className="mt-3 max-h-48 overflow-auto rounded-lg border border-stone-200 bg-white/70 p-2">
+              {filteredPublishedSlots.length === 0 ? (
+                <p className="px-2 py-3 text-sm text-stone-600">No published dragons found.</p>
+              ) : (
+                <div className="space-y-1">
+                  {filteredPublishedSlots.map((slot) => (
+                    <button
+                      key={`published-${slot.id}`}
+                      type="button"
+                      onClick={() => focusSlot(slot.id)}
+                      className="flex w-full items-center gap-2 sm:gap-3 rounded-md px-2 py-1.5 text-left hover:bg-stone-100"
+                    >
+                      {slot.imageUrl ? (
+                        <Image
+                          src={slot.imageUrl}
+                          alt="Published dragon"
+                          width={32}
+                          height={32}
+                          className="h-8 w-8 sm:h-[34px] sm:w-[34px] rounded object-cover border border-stone-300"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="h-[34px] w-[34px] rounded border border-stone-300 bg-stone-200" />
+                      )}
+                      <span className="flex-1 truncate text-xs text-stone-700">
+                        {slot.discordNick || slot.ownerDiscordUsername || "Unknown"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
       {showRandomRoulette && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4"
           role="dialog"
           aria-modal="true"
           aria-label="Random dragon roulette"
         >
           <div
-            className="bg-stone-100 rounded-xl shadow-xl max-w-2xl w-full p-6"
+            className="bg-stone-100 rounded-xl shadow-xl max-w-2xl w-full p-3 sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-xl font-semibold text-stone-800 text-center mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-stone-800 text-center mb-3 sm:mb-4">
               Dragon roulette
             </h2>
-            <div className="relative mx-auto w-full max-w-[520px] rounded-xl border border-stone-300 bg-stone-200/70 p-3 overflow-hidden">
+            <div className="relative mx-auto w-full max-w-[520px] rounded-xl border border-stone-300 bg-stone-200/70 p-2 sm:p-3 overflow-hidden">
               <div
                 className="absolute top-2 bottom-2 left-1/2 -translate-x-1/2 w-[3px] rounded-full bg-amber-700 z-20 shadow-[0_0_16px_rgba(217,119,6,0.5)]"
                 aria-hidden
               />
               <div
-                className="flex gap-3"
+                className="flex"
                 style={{
-                  paddingInline: `calc(50% - ${ROULETTE_ITEM_SIZE / 2}px)`,
+                  gap: `${rouletteItemGap}px`,
+                  paddingInline: `calc(50% - ${rouletteItemSize / 2}px)`,
                   transform: `translateX(${rouletteOffset}px)`,
                   transition:
                     rouletteDurationMs > 0
@@ -513,13 +622,13 @@ export function WallGrid() {
                         ? "border-amber-500 ring-4 ring-amber-400/70 scale-110 shadow-2xl z-30"
                         : "border-amber-700/40"
                     }`}
-                    style={{ width: ROULETTE_ITEM_SIZE, height: ROULETTE_ITEM_SIZE }}
+                    style={{ width: rouletteItemSize, height: rouletteItemSize }}
                   >
                     <Image
                       src={url}
                       alt="Dragon in roulette"
                       fill
-                      sizes="96px"
+                      sizes={isMobile ? "72px" : "96px"}
                       className="object-cover"
                       unoptimized
                     />
@@ -533,18 +642,18 @@ export function WallGrid() {
 
       {showDragonList && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4"
           onClick={() => !assigning && setShowDragonList(false)}
           role="dialog"
           aria-modal="true"
           aria-label="Dragon list"
         >
           <div
-            className="bg-stone-100 rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto p-6"
+            className="bg-stone-100 rounded-xl shadow-xl max-w-4xl w-full max-h-[92vh] overflow-auto p-3 sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-stone-800">Choose your dragon</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-stone-800">Choose your dragon</h2>
               <button
                 type="button"
                 onClick={() => !assigning && setShowDragonList(false)}
@@ -555,7 +664,7 @@ export function WallGrid() {
                 ×
               </button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
               {DRAGON_FILENAMES.map((filename) => {
                 const imageUrl = getDragonUrl(filename);
                 return (
@@ -594,63 +703,78 @@ export function WallGrid() {
 
       {showAssignConfirm && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => !assigning && setShowAssignConfirm(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4"
           role="dialog"
           aria-modal="true"
-          aria-label="Confirm dragon choice"
+          aria-label="Dragon preview before publish"
         >
           <div
-            className="bg-stone-100 rounded-xl shadow-xl max-w-md w-full p-6"
+            className="relative h-full w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-xl font-semibold text-stone-800 mb-3">
-              Confirm your dragon choice
-            </h2>
-            <p className="text-stone-600 text-sm">
-              Your Discord nickname will be taken from the connected account automatically.
-            </p>
-            <div className="mt-5 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => !assigning && setShowAssignConfirm(false)}
-                disabled={assigning}
-                className="rounded-lg bg-stone-300 px-4 py-2 text-stone-800 font-medium hover:bg-stone-400 disabled:opacity-60"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmDragonChoice}
-                disabled={assigning}
-                className="rounded-lg bg-amber-700 px-4 py-2 text-white font-medium hover:bg-amber-800 disabled:opacity-60"
-              >
-                {assigning ? "Saving..." : "Confirm choice"}
-              </button>
+            <div className="mx-auto flex h-full w-full max-w-[1400px] flex-col items-center justify-center gap-3 sm:gap-5">
+              {selectedDragonUrl && (
+                <div className="relative h-[62vh] sm:h-[72vh] w-full overflow-hidden rounded-xl sm:rounded-2xl border border-stone-300/50 bg-black/30 shadow-2xl">
+                  <Image
+                    src={selectedDragonUrl}
+                    alt="Selected dragon preview"
+                    fill
+                    className="object-contain"
+                    unoptimized
+                  />
+                </div>
+              )}
+              <div className="flex w-full max-w-[720px] flex-col-reverse sm:flex-row items-stretch sm:items-center justify-center gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={() => !assigning && setShowAssignConfirm(false)}
+                  disabled={assigning}
+                  className="w-full sm:w-auto rounded-lg px-5 py-2.5 font-medium shadow-md transition-colors disabled:pointer-events-none disabled:opacity-60 hover:brightness-95"
+                  style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
+                >
+                  ✕ Choose another
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDragonChoice}
+                  disabled={assigning || !selectedDragonUrl}
+                  className="w-full sm:w-auto rounded-lg px-5 py-2.5 font-medium shadow-md transition-colors disabled:pointer-events-none disabled:opacity-60 hover:brightness-95"
+                  style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
+                >
+                  {assigning ? "Saving..." : "✓ Confirm choice"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="relative z-0 flex justify-center px-4 py-6">
+      <div className="relative z-0 flex justify-center px-2 sm:px-4 py-4 sm:py-6">
         <div
           className="w-full max-w-[1400px] wall-grid overflow-visible bg-transparent"
           style={{
             display: "grid",
-            gridTemplateColumns: `repeat(${WALL_COLUMNS}, 1fr)`,
+            gridTemplateColumns: `repeat(${displayColumns}, 1fr)`,
             gridTemplateRows: `repeat(${rowCount}, 1fr)`,
-            gap: 16,
-            aspectRatio: `${WALL_COLUMNS}/${rowCount}`,
+            gap: isMobile ? 8 : isTablet ? 12 : 16,
+            aspectRatio: `${displayColumns}/${rowCount}`,
           }}
         >
           {loading
-            ? Array.from({ length: WALL_COLUMNS * INITIAL_ROWS }).map((_, i) => (
+            ? Array.from({ length: displayColumns * INITIAL_ROWS }).map((_, i) => (
                 <div key={i} className="bg-stone-600/30 animate-pulse rounded-lg" />
               ))
             : slots.map((slot: BrickSlot) => (
                 <div
                   key={slot.id}
-                  className="relative w-full min-h-0 overflow-visible bg-transparent"
+                  ref={(node) => {
+                    slotRefs.current[Number(slot.id)] = node;
+                  }}
+                  className={`relative w-full min-h-0 overflow-visible bg-transparent transition-shadow duration-300 ${
+                    highlightedSlotId === Number(slot.id)
+                      ? "rounded-lg shadow-[0_0_0_4px_rgba(251,191,36,0.8),0_0_28px_rgba(217,119,6,0.45)]"
+                      : ""
+                  }`}
                   style={{ transform: `rotate(${getSlotTiltDeg(slot.id)}deg)` }}
                 >
                   {pendingRevealSlots[Number(slot.id)] && (

@@ -17,29 +17,34 @@ export function SiteHeader() {
         className="sticky top-0 z-40 w-full border-b border-white/10 bg-white/5 backdrop-blur-2xl supports-[backdrop-filter]:bg-white/[0.06]"
         role="banner"
       >
-        <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-3 px-4">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex min-h-16 max-w-[1400px] flex-wrap items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-0">
+          <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 hidden md:block">
+            <span className="header-heart-shimmer text-base lg:text-xl font-semibold tracking-wide">
+              Forever in Raiku&apos;s Heart
+            </span>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
             <Image
               src={LOGO_GIF}
               alt=""
               width={44}
               height={44}
-              className="h-11 w-11 shrink-0 rounded-lg object-cover"
+              className="h-9 w-9 sm:h-11 sm:w-11 shrink-0 rounded-lg object-cover"
               unoptimized
             />
             <span
-              className="text-xl font-bold tracking-tight drop-shadow-sm"
+              className="text-lg sm:text-xl font-bold tracking-tight drop-shadow-sm"
               style={{ color: "#9c64fb" }}
             >
               Raiku Graffiti
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full sm:w-auto items-center justify-end gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={() => (isAuthed ? signOut() : signIn("discord"))}
               disabled={status === "loading"}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-stone-700 hover:bg-white/10 transition-colors disabled:opacity-60"
+              className="rounded-lg px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-stone-700 hover:bg-white/10 transition-colors disabled:opacity-60 whitespace-nowrap"
               style={{ color: "#9c64fb" }}
             >
               {isAuthed ? `Disconnect @${session?.user?.name ?? "Discord"}` : "Connect to Discord"}
@@ -47,7 +52,7 @@ export function SiteHeader() {
             <button
               type="button"
               onClick={() => setShowAbout(true)}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-stone-700 hover:bg-white/10 transition-colors"
+              className="rounded-lg px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-stone-700 hover:bg-white/10 transition-colors whitespace-nowrap"
               style={{ color: "#9c64fb" }}
             >
               About
