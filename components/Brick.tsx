@@ -35,7 +35,7 @@ export function Brick({
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const hasImage = Boolean(slot.imageUrl) && !imgError;
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   const isGoldenNick = isAdminDiscordId(slot.ownerDiscordId);
 
   useEffect(() => {
@@ -92,8 +92,8 @@ export function Brick({
               disabled={isDeleting}
               className="absolute top-1 right-1 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full text-[#9c64fb] flex items-center justify-center text-base sm:text-lg font-bold hover:brightness-95 disabled:opacity-50 shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-all duration-150"
               style={{ backgroundColor: "#c0fe38" }}
-              title={language === "ru" ? "Удалить фото" : "Delete photo"}
-              aria-label={language === "ru" ? "Удалить фото" : "Delete photo"}
+              title={t.wall.deletePhoto}
+              aria-label={t.wall.deletePhoto}
             >
               {isDeleting ? "…" : "×"}
             </button>

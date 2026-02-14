@@ -34,17 +34,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var key='raiku_theme';var saved=localStorage.getItem(key);var theme=saved==='dark'?'dark':'light';document.documentElement.setAttribute('data-theme',theme);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();",
+          }}
+        />
+      </head>
       <body className="antialiased min-h-screen">
         <Providers>
-          <div
-            className="min-h-screen bg-no-repeat bg-center"
-            style={{
-              backgroundImage: `url('${SITE_BG}')`,
-              backgroundSize: "cover",
-              backgroundAttachment: "scroll",
-            }}
-          >
+          <div className="site-shell min-h-screen bg-no-repeat bg-center">
             <SiteHeader />
             {children}
           </div>

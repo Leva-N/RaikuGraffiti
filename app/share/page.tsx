@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { translations, type Language } from "@/lib/i18n";
+import { isLanguage, translations, type Language } from "@/lib/i18n";
 
 const DEFAULT_SHARE_IMAGE =
   "/images/" + encodeURIComponent("ChatGPT Image 13 февр. 2026 г., 15_47_29.png");
@@ -16,7 +16,8 @@ function getParam(value: string | string[] | undefined): string | null {
 }
 
 function getLanguage(rawLanguage: string | null): Language {
-  return rawLanguage === "ru" ? "ru" : "en";
+  if (rawLanguage && isLanguage(rawLanguage)) return rawLanguage;
+  return "en";
 }
 
 function getShareImage(rawImage: string | null): string {

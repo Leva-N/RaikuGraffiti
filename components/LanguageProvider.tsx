@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { LANGUAGE_STORAGE_KEY, type Language, translations } from "@/lib/i18n";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { isLanguage, LANGUAGE_STORAGE_KEY, type Language, translations } from "@/lib/i18n";
 
 type LanguageContextValue = {
   language: Language;
@@ -17,26 +17,31 @@ type LanguageProviderProps = {
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const [language, setLanguageState] = useState<Language>("en");
 
+  const applyDocumentLocale = (nextLanguage: Language) => {
+    document.documentElement.lang = nextLanguage;
+    document.documentElement.dir = nextLanguage === "ar" ? "rtl" : "ltr";
+  };
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const saved = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-    if (saved === "en" || saved === "ru") {
+    if (saved && isLanguage(saved)) {
       setLanguageState(saved);
-      document.documentElement.lang = saved;
+      applyDocumentLocale(saved);
     } else {
-      document.documentElement.lang = "en";
+      applyDocumentLocale("en");
     }
   }, []);
 
-  const setLanguage = (nextLanguage: Language) => {
+  const setLanguage = useCallback((nextLanguage: Language) => {
     setLanguageState(nextLanguage);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
-      document.documentElement.lang = nextLanguage;
+      applyDocumentLocale(nextLanguage);
     }
-  };
+  }, []);
 
-  const value = useMemo(() => ({ language, setLanguage }), [language]);
+  const value = useMemo(() => ({ language, setLanguage }), [language, setLanguage]);
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }

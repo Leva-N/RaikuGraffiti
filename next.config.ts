@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         hostname: "**.blob.vercel-storage.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "flagcdn.com",
+        pathname: "/**",
+      },
     ],
   },
   // Избегаем бандлинга @vercel/blob в Webpack — пакет может вызывать

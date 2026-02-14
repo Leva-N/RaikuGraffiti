@@ -658,7 +658,7 @@ export function WallGrid() {
                       {slot.imageUrl ? (
                         <Image
                           src={slot.imageUrl}
-                          alt="Published dragon"
+                          alt={t.wall.publishedDragonAlt}
                           width={32}
                           height={32}
                           className="h-8 w-8 sm:h-[34px] sm:w-[34px] rounded object-cover border border-stone-300"
@@ -729,7 +729,7 @@ export function WallGrid() {
                   >
                     <Image
                       src={url}
-                      alt="Dragon in roulette"
+                      alt={t.wall.rouletteDragonAlt}
                       fill
                       sizes={isMobile ? "72px" : "96px"}
                       className="object-cover"
@@ -790,7 +790,7 @@ export function WallGrid() {
                   >
                     <Image
                       src={imageUrl}
-                      alt="Dragon"
+                      alt={t.wall.dragonAlt}
                       fill
                       sizes="(max-width: 640px) 50vw, 200px"
                       className="object-cover"
@@ -823,7 +823,7 @@ export function WallGrid() {
                 <div className="relative h-[62vh] sm:h-[72vh] w-full overflow-hidden rounded-xl sm:rounded-2xl border border-stone-300/50 bg-black/30 shadow-2xl">
                   <Image
                     src={selectedDragonUrl}
-                    alt="Selected dragon preview"
+                    alt={t.wall.selectedDragonPreviewAlt}
                     fill
                     className="object-contain"
                     unoptimized
