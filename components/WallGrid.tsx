@@ -12,11 +12,14 @@ import { DRAGON_FILENAMES, getDragonUrl } from "@/lib/dragons";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { isAdminDiscordId } from "@/lib/permissions";
+import { useLanguage } from "@/components/LanguageProvider";
 
 let assignInFlight = false;
-const ROULETTE_SPIN_MS = 4800;
+const ROULETTE_SPIN_MS = 9800;
 const ROULETTE_RESULT_MS = 3000;
 const SLOTS_CACHE_KEY = "raiku_wall_slots_v1";
+const DEFAULT_SHARE_IMAGE =
+  "/images/" + encodeURIComponent("ChatGPT Image 13 февр. 2026 г., 15_47_29.png");
 
 function getUniformRandomInt(maxExclusive: number): number {
   if (maxExclusive <= 0) return 0;
@@ -94,6 +97,8 @@ export function WallGrid() {
   const [highlightedSlotId, setHighlightedSlotId] = useState<number | null>(null);
   const [viewportWidth, setViewportWidth] = useState<number>(0);
   const [pendingRevealSlots, setPendingRevealSlots] = useState<Record<number, true>>({});
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const revealTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const rouletteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -101,15 +106,16 @@ export function WallGrid() {
   const { data: session } = useSession();
   const currentDiscordId = session?.user?.id ?? null;
   const isAdmin = isAdminDiscordId(currentDiscordId);
+  const { language, t } = useLanguage();
 
-  const requireDiscordConnection = useCallback(() => {
+  const requireDiscordConnection = () => {
     if (currentDiscordId) {
       setConnectHint(null);
       return true;
     }
-    setConnectHint("Connect to Discord");
+    setConnectHint(t.wall.connectHint);
     return false;
-  }, [currentDiscordId]);
+  };
 
   const fetchSlots = useCallback(async () => {
     const controller = new AbortController();
@@ -246,10 +252,7 @@ export function WallGrid() {
         const body = await res.json().catch(() => ({}));
 
         if (!res.ok) {
-          const msg =
-            res.status === 413
-              ? "Файл слишком большой (макс. 5 МБ)"
-              : body?.error || "Ошибка загрузки";
+          const msg = res.status === 413 ? t.wall.fileTooLarge : t.wall.uploadFailed;
           setUploadError(msg);
           return;
         }
@@ -288,13 +291,13 @@ export function WallGrid() {
           });
         });
       } catch {
-        setUploadError("Ошибка сети или сервера");
+        setUploadError(t.wall.networkOrServerError);
       } finally {
         setUploading(false);
         setUploadingId(null);
       }
     },
-    [data, uploading, fetchSlots, focusSlot]
+    [data, uploading, fetchSlots, focusSlot, t.wall.fileTooLarge, t.wall.networkOrServerError, t.wall.uploadFailed]
   );
 
   const onInputChange = useCallback(
@@ -367,7 +370,7 @@ export function WallGrid() {
     async (imageUrl: string) => {
       if (assignInFlight) return;
       if (!currentDiscordId) {
-        setUploadError("Connect to Discord first");
+        setUploadError(t.wall.connectHint);
         return;
       }
       assignInFlight = true;
@@ -382,7 +385,7 @@ export function WallGrid() {
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setUploadError(body?.error || "Не удалось поставить дракона");
+          setUploadError(t.wall.assignFailed);
           return;
         }
         const payload = body as {
@@ -407,14 +410,22 @@ export function WallGrid() {
           });
         });
       } catch {
-        setUploadError("Ошибка сети или сервера");
+        setUploadError(t.wall.networkOrServerError);
       } finally {
         assignInFlight = false;
         setAssigning(false);
         setUploadingId(null);
       }
     },
-    [beginSprayReveal, currentDiscordId, fetchSlots, focusSlot]
+    [
+      beginSprayReveal,
+      currentDiscordId,
+      fetchSlots,
+      focusSlot,
+      t.wall.assignFailed,
+      t.wall.connectHint,
+      t.wall.networkOrServerError,
+    ]
   );
 
   const confirmDragonChoice = useCallback(async () => {
@@ -433,13 +444,8 @@ export function WallGrid() {
           method: "DELETE",
           cache: "no-store",
         });
-        const body = await res.json().catch(() => ({}));
-        const alreadyEmpty =
-          res.status === 400 &&
-          typeof body?.error === "string" &&
-          body.error.toLowerCase().includes("нет фото");
-        if (!res.ok && !alreadyEmpty) {
-          setUploadError(body?.error || "Не удалось удалить");
+        if (!res.ok) {
+          setUploadError(t.wall.uploadFailed);
           return;
         }
         setData((prev) => {
@@ -464,15 +470,26 @@ export function WallGrid() {
           return next;
         });
       } catch {
-        setUploadError("Ошибка сети");
+        setUploadError(t.wall.networkError);
       } finally {
         setDeletingId(null);
       }
     },
-    [data, deletingId]
+    [data, deletingId, t.wall.networkError, t.wall.uploadFailed]
   );
 
   const slots = data?.slots?.length ? data.slots : createEmptySlots();
+  const userDragonUrl = useMemo(() => {
+    if (!currentDiscordId) return null;
+    const owned = slots
+      .filter((slot) => Boolean(slot.imageUrl) && slot.ownerDiscordId === currentDiscordId)
+      .sort((a, b) => {
+        const aTime = a.createdAt ? Date.parse(a.createdAt) : 0;
+        const bTime = b.createdAt ? Date.parse(b.createdAt) : 0;
+        return bTime - aTime;
+      });
+    return owned[0]?.imageUrl ?? null;
+  }, [currentDiscordId, slots]);
   const rowCount = Math.ceil(slots.length / displayColumns) || INITIAL_ROWS;
   const publishedSlots = useMemo(() => slots.filter((slot) => !!slot.imageUrl), [slots]);
   const normalizedSearch = publishedSearch.trim().toLowerCase();
@@ -484,6 +501,78 @@ export function WallGrid() {
       return nick.includes(normalizedSearch) || username.includes(normalizedSearch);
     });
   }, [normalizedSearch, publishedSlots]);
+
+  const buildShareUrl = useCallback(() => {
+    if (typeof window === "undefined") return "";
+    const origin = window.location.origin;
+    const defaultImageUrl = `${origin}${DEFAULT_SHARE_IMAGE}`;
+    let imageUrl = defaultImageUrl;
+    if (currentDiscordId) {
+      const picked = selectedDragonUrl ?? userDragonUrl;
+      if (picked) {
+        imageUrl = picked.startsWith("http") ? picked : `${origin}${picked}`;
+      }
+    }
+    const url = new URL("/share", origin);
+    url.searchParams.set("image", imageUrl);
+    url.searchParams.set("lang", language);
+    return url.toString();
+  }, [currentDiscordId, language, selectedDragonUrl, userDragonUrl]);
+
+  const openShareWindow = useCallback(
+    (url: string) => {
+      const opened = window.open(url, "_blank", "noopener,noreferrer");
+      if (!opened) setShareFeedback(t.wall.shareOpenFailed);
+    },
+    [t.wall.shareOpenFailed]
+  );
+
+  const handleTelegramShare = useCallback(() => {
+    const shareUrl = buildShareUrl();
+    const url = new URL("https://t.me/share/url");
+    url.searchParams.set("url", shareUrl);
+    url.searchParams.set("text", `${t.shareDescription}.`);
+    openShareWindow(url.toString());
+  }, [buildShareUrl, openShareWindow, t.shareDescription]);
+
+  const handleTwitterShare = useCallback(() => {
+    const shareUrl = buildShareUrl();
+    const url = new URL("https://twitter.com/intent/tweet");
+    url.searchParams.set("url", shareUrl);
+    url.searchParams.set("text", `${t.shareTitle}. ${t.shareDescription}.`);
+    openShareWindow(url.toString());
+  }, [buildShareUrl, openShareWindow, t.shareDescription, t.shareTitle]);
+
+  const handleFacebookShare = useCallback(() => {
+    const shareUrl = buildShareUrl();
+    const url = new URL("https://www.facebook.com/sharer/sharer.php");
+    url.searchParams.set("u", shareUrl);
+    openShareWindow(url.toString());
+  }, [buildShareUrl, openShareWindow]);
+
+  const handleCopyLink = useCallback(async () => {
+    const shareUrl = buildShareUrl();
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareFeedback(t.wall.shareCopied);
+    } catch {
+      setShareFeedback(t.wall.shareCopyFailed);
+    }
+  }, [buildShareUrl, t.wall.shareCopied, t.wall.shareCopyFailed]);
+
+  const handleNativeShare = useCallback(async () => {
+    const shareUrl = buildShareUrl();
+    if (!navigator.share) return;
+    try {
+      await navigator.share({
+        title: t.shareTitle,
+        text: t.shareDescription,
+        url: shareUrl,
+      });
+    } catch {
+      // User cancelled sharing dialog.
+    }
+  }, [buildShareUrl, t.shareDescription, t.shareTitle]);
 
   return (
     <div className="space-y-4">
@@ -507,7 +596,7 @@ export function WallGrid() {
           className="w-full sm:w-auto rounded-lg px-4 py-2 text-sm sm:text-base font-medium shadow-md disabled:pointer-events-none disabled:opacity-60"
           style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
         >
-          {uploading ? "Uploading..." : "Choose your dragon"}
+          {uploading ? t.wall.uploading : t.wall.chooseDragon}
         </button>
         <button
           type="button"
@@ -519,7 +608,18 @@ export function WallGrid() {
           className="w-full sm:w-auto rounded-lg px-4 py-2 text-sm sm:text-base font-medium shadow-md disabled:pointer-events-none disabled:opacity-60"
           style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
         >
-          {rouletteRolling ? "Roulette is spinning..." : "Choose random dragon"}
+          {rouletteRolling ? t.wall.rouletteSpinning : t.wall.chooseRandomDragon}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setShareFeedback(null);
+            setShowShareModal(true);
+          }}
+          className="w-full sm:w-auto rounded-lg px-4 py-2 text-sm sm:text-base font-medium shadow-md hover:brightness-95"
+          style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
+        >
+          {t.wall.shareButton}
         </button>
         {connectHint && (
           <p className="text-red-600 text-sm font-medium w-full text-center">{connectHint}</p>
@@ -532,23 +632,20 @@ export function WallGrid() {
         <div className="rounded-xl border border-stone-300/70 bg-stone-100/70 p-3 sm:p-4 shadow-sm">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h3 className="w-full sm:w-auto font-semibold text-sm sm:text-base" style={{ color: "#9c64fb" }}>
-              Published dragons quick search
+              {t.wall.quickSearchTitle}
             </h3>
             <input
               type="text"
               value={publishedSearch}
               onChange={(e) => setPublishedSearch(e.target.value)}
-              placeholder="Search by Discord nickname"
+              placeholder={t.wall.quickSearchPlaceholder}
               className="min-w-0 w-full sm:min-w-[220px] sm:flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-amber-600"
             />
-            <span className="text-xs text-stone-600">
-              {filteredPublishedSlots.length} / {publishedSlots.length}
-            </span>
           </div>
           {normalizedSearch && (
             <div className="mt-3 max-h-48 overflow-auto rounded-lg border border-stone-200 bg-white/70 p-2">
               {filteredPublishedSlots.length === 0 ? (
-                <p className="px-2 py-3 text-sm text-stone-600">No published dragons found.</p>
+                <p className="px-2 py-3 text-sm text-stone-600">{t.wall.noPublishedFound}</p>
               ) : (
                 <div className="space-y-1">
                   {filteredPublishedSlots.map((slot) => (
@@ -570,8 +667,14 @@ export function WallGrid() {
                       ) : (
                         <div className="h-[34px] w-[34px] rounded border border-stone-300 bg-stone-200" />
                       )}
-                      <span className="flex-1 truncate text-xs text-stone-700">
-                        {slot.discordNick || slot.ownerDiscordUsername || "Unknown"}
+                      <span
+                        className="flex-1 truncate text-xs"
+                        style={{
+                          color: isAdminDiscordId(slot.ownerDiscordId) ? "#d4af37" : "#44403c",
+                          fontWeight: isAdminDiscordId(slot.ownerDiscordId) ? 700 : 400,
+                        }}
+                      >
+                        {slot.discordNick || slot.ownerDiscordUsername || t.wall.unknownUser}
                       </span>
                     </button>
                   ))}
@@ -587,14 +690,14 @@ export function WallGrid() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4"
           role="dialog"
           aria-modal="true"
-          aria-label="Random dragon roulette"
+          aria-label={t.wall.rouletteDialogLabel}
         >
           <div
             className="bg-stone-100 rounded-xl shadow-xl max-w-2xl w-full p-3 sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg sm:text-xl font-semibold text-stone-800 text-center mb-3 sm:mb-4">
-              Dragon roulette
+              <span style={{ color: "#9c64fb" }}>{t.wall.rouletteTitle}</span>
             </h2>
             <div className="relative mx-auto w-full max-w-[520px] rounded-xl border border-stone-300 bg-stone-200/70 p-2 sm:p-3 overflow-hidden">
               <div
@@ -646,20 +749,23 @@ export function WallGrid() {
           onClick={() => !assigning && setShowDragonList(false)}
           role="dialog"
           aria-modal="true"
-          aria-label="Dragon list"
+          aria-label={t.wall.dragonListDialogLabel}
         >
           <div
             className="bg-stone-100 rounded-xl shadow-xl max-w-4xl w-full max-h-[92vh] overflow-auto p-3 sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg sm:text-xl font-semibold text-stone-800">Choose your dragon</h2>
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
+              <div />
+              <h2 className="text-lg sm:text-xl font-semibold text-center" style={{ color: "#9c64fb" }}>
+                {t.wall.chooseDragonModalTitle}
+              </h2>
               <button
                 type="button"
                 onClick={() => !assigning && setShowDragonList(false)}
                 disabled={assigning}
-                className="text-stone-500 hover:text-stone-800 text-2xl leading-none disabled:opacity-50"
-                aria-label="Close"
+                className="justify-self-end text-stone-500 hover:text-stone-800 text-2xl leading-none disabled:opacity-50"
+                aria-label={t.header.close}
               >
                 ×
               </button>
@@ -695,7 +801,7 @@ export function WallGrid() {
               })}
             </div>
             {assigning && (
-              <p className="text-center text-stone-600 mt-4">Adding to the wall...</p>
+              <p className="text-center text-stone-600 mt-4">{t.wall.addingToWall}</p>
             )}
           </div>
         </div>
@@ -706,7 +812,7 @@ export function WallGrid() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4"
           role="dialog"
           aria-modal="true"
-          aria-label="Dragon preview before publish"
+          aria-label={t.wall.assignPreviewLabel}
         >
           <div
             className="relative h-full w-full"
@@ -732,7 +838,7 @@ export function WallGrid() {
                   className="w-full sm:w-auto rounded-lg px-5 py-2.5 font-medium shadow-md transition-colors disabled:pointer-events-none disabled:opacity-60 hover:brightness-95"
                   style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
                 >
-                  ✕ Choose another
+                  ✕ {t.wall.chooseAnother}
                 </button>
                 <button
                   type="button"
@@ -741,10 +847,84 @@ export function WallGrid() {
                   className="w-full sm:w-auto rounded-lg px-5 py-2.5 font-medium shadow-md transition-colors disabled:pointer-events-none disabled:opacity-60 hover:brightness-95"
                   style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
                 >
-                  {assigning ? "Saving..." : "✓ Confirm choice"}
+                  {assigning ? t.wall.saving : `✓ ${t.wall.confirmChoice}`}
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showShareModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4"
+          onClick={() => setShowShareModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t.wall.shareModalTitle}
+        >
+          <div
+            className="bg-stone-100 rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg sm:text-xl font-semibold" style={{ color: "#9c64fb" }}>
+                {t.wall.shareModalTitle}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowShareModal(false)}
+                className="text-stone-500 hover:text-stone-800 text-2xl leading-none"
+                aria-label={t.header.close}
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleTelegramShare}
+                className="w-full rounded-lg px-4 py-2 text-left text-sm sm:text-base font-medium shadow-sm hover:brightness-95"
+                style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
+              >
+                {t.wall.shareTelegram}
+              </button>
+              <button
+                type="button"
+                onClick={handleTwitterShare}
+                className="w-full rounded-lg px-4 py-2 text-left text-sm sm:text-base font-medium shadow-sm hover:brightness-95"
+                style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
+              >
+                {t.wall.shareTwitter}
+              </button>
+              <button
+                type="button"
+                onClick={handleFacebookShare}
+                className="w-full rounded-lg px-4 py-2 text-left text-sm sm:text-base font-medium shadow-sm hover:brightness-95"
+                style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
+              >
+                {t.wall.shareFacebook}
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="w-full rounded-lg px-4 py-2 text-left text-sm sm:text-base font-medium shadow-sm hover:brightness-95"
+                style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
+              >
+                {t.wall.shareCopyLink}
+              </button>
+              {(isMobile || isTablet) && typeof navigator !== "undefined" && "share" in navigator && (
+                <button
+                  type="button"
+                  onClick={handleNativeShare}
+                  className="w-full rounded-lg px-4 py-2 text-left text-sm sm:text-base font-medium shadow-sm hover:brightness-95"
+                  style={{ backgroundColor: "#c0fe38", color: "#9c64fb" }}
+                >
+                  {t.wall.shareNative}
+                </button>
+              )}
+            </div>
+            {shareFeedback && <p className="mt-3 text-sm text-stone-700">{shareFeedback}</p>}
           </div>
         </div>
       )}

@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
+import { isAdminDiscordId } from "@/lib/permissions";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export type BrickSlot = {
   id: number;
@@ -33,6 +35,8 @@ export function Brick({
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const hasImage = Boolean(slot.imageUrl) && !imgError;
+  const { language } = useLanguage();
+  const isGoldenNick = isAdminDiscordId(slot.ownerDiscordId);
 
   useEffect(() => {
     setImgError(false);
@@ -69,7 +73,12 @@ export function Brick({
           </div>
           {slot.discordNick && (
             <div className="absolute bottom-0 left-0 right-0 py-0.5 px-1.5 sm:py-1 sm:px-2 bg-white text-xs sm:text-sm font-medium text-center truncate pointer-events-none z-[5]">
-              <span className="brick-nick-shimmer">{slot.discordNick}</span>
+              <span
+                className={isGoldenNick ? "" : "brick-nick-shimmer"}
+                style={isGoldenNick ? { color: "#d4af37", fontWeight: 700 } : undefined}
+              >
+                {slot.discordNick}
+              </span>
             </div>
           )}
           {onDelete && canDelete && (
@@ -83,8 +92,8 @@ export function Brick({
               disabled={isDeleting}
               className="absolute top-1 right-1 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full text-[#9c64fb] flex items-center justify-center text-base sm:text-lg font-bold hover:brightness-95 disabled:opacity-50 shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-all duration-150"
               style={{ backgroundColor: "#c0fe38" }}
-              title="Delete photo"
-              aria-label="Delete photo"
+              title={language === "ru" ? "Удалить фото" : "Delete photo"}
+              aria-label={language === "ru" ? "Удалить фото" : "Delete photo"}
             >
               {isDeleting ? "…" : "×"}
             </button>
