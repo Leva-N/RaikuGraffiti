@@ -48,11 +48,31 @@ export function getDragonUrl(filename: string): string {
   return "/images/" + encodeURIComponent(filename);
 }
 
+export function migrateDragonImageUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed.startsWith("/images/")) return trimmed;
+
+  try {
+    const decoded = decodeURIComponent(trimmed);
+    if (!decoded.startsWith("/images/")) return trimmed;
+    const filename = decoded.slice("/images/".length);
+    if (!filename.toLowerCase().endsWith(".png")) return trimmed;
+
+    const avifName = filename.replace(/\.png$/i, ".avif");
+    if (DRAGON_FILENAMES.includes(avifName as (typeof DRAGON_FILENAMES)[number])) {
+      return getDragonUrl(avifName);
+    }
+    return trimmed;
+  } catch {
+    return trimmed;
+  }
+}
+
 export const DRAGON_URLS: string[] = DRAGON_FILENAMES.map(getDragonUrl);
 
 export function isAllowedDragonUrl(url: string): boolean {
   try {
-    const decoded = decodeURIComponent(url);
+    const decoded = decodeURIComponent(migrateDragonImageUrl(url));
     if (!decoded.startsWith("/images/")) return false;
     const name = decoded.slice("/images/".length);
     return DRAGON_FILENAMES.includes(name as (typeof DRAGON_FILENAMES)[number]);

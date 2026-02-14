@@ -2,6 +2,7 @@ import { del, list, put } from "@vercel/blob";
 import type { SlotsData } from "./types";
 import { createEmptySlots } from "./types";
 import { getBlobToken, hasBlobToken } from "./blob-token";
+import { migrateDragonImageUrl } from "./dragons";
 
 const SLOTS_PREFIX = "wall-slots/";
 const SLOTS_HISTORY_KEEP = 30;
@@ -19,7 +20,10 @@ function normalizeSlots(data: SlotsData): SlotsData {
   if (slots.length === 0) return { slots: createEmptySlots(), updatedAt: data.updatedAt ?? new Date().toISOString() };
   slots = slots.map((s, index) => ({
     id: typeof s.id === "number" ? s.id : index,
-    imageUrl: typeof s.imageUrl === "string" && s.imageUrl.trim() ? s.imageUrl.trim() : null,
+    imageUrl:
+      typeof s.imageUrl === "string" && s.imageUrl.trim()
+        ? migrateDragonImageUrl(s.imageUrl)
+        : null,
     createdAt: s.createdAt ?? null,
     discordNick: typeof s.discordNick === "string" && s.discordNick.trim() ? s.discordNick.trim() : null,
     ownerDiscordId:
