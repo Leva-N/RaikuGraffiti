@@ -81,6 +81,8 @@ export function Brick({
                     width={14}
                     height={14}
                     className="h-3.5 w-3.5 rounded-full object-cover border border-stone-300/80 shrink-0"
+                    referrerPolicy="no-referrer"
+                    unoptimized
                   />
                 ) : null}
                 <span

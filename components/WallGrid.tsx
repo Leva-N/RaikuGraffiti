@@ -676,6 +676,8 @@ export function WallGrid() {
                             width={18}
                             height={18}
                             className="h-[18px] w-[18px] rounded-full object-cover border border-stone-300 shrink-0"
+                            referrerPolicy="no-referrer"
+                            unoptimized
                           />
                         ) : null}
                         <span
