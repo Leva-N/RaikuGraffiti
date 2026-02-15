@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
-import { isAdminDiscordId } from "@/lib/permissions";
+import { getNickColor } from "@/lib/permissions";
 import { useLanguage } from "@/components/LanguageProvider";
 
 export type BrickSlot = {
@@ -12,6 +12,7 @@ export type BrickSlot = {
   discordNick?: string | null;
   ownerDiscordId?: string | null;
   ownerDiscordUsername?: string | null;
+  ownerDiscordAvatar?: string | null;
 };
 
 type BrickProps = {
@@ -36,7 +37,7 @@ export function Brick({
   const [imgLoaded, setImgLoaded] = useState(false);
   const hasImage = Boolean(slot.imageUrl) && !imgError;
   const { t } = useLanguage();
-  const isGoldenNick = isAdminDiscordId(slot.ownerDiscordId);
+  const nickColor = getNickColor(slot.ownerDiscordId);
 
   useEffect(() => {
     setImgError(false);
@@ -68,16 +69,26 @@ export function Brick({
               className={`object-cover transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
               onLoad={() => setImgLoaded(true)}
               onError={handleError}
-              unoptimized
             />
           </div>
           {slot.discordNick && (
             <div className="absolute bottom-0 left-0 right-0 py-0.5 px-1.5 sm:py-1 sm:px-2 bg-white text-xs sm:text-sm font-medium text-center truncate pointer-events-none z-[5]">
-              <span
-                className={isGoldenNick ? "" : "brick-nick-shimmer"}
-                style={isGoldenNick ? { color: "#d4af37", fontWeight: 700 } : undefined}
-              >
-                {slot.discordNick}
+              <span className="inline-flex max-w-full items-center gap-1 truncate align-middle">
+                {slot.ownerDiscordAvatar ? (
+                  <Image
+                    src={slot.ownerDiscordAvatar}
+                    alt=""
+                    width={14}
+                    height={14}
+                    className="h-3.5 w-3.5 rounded-full object-cover border border-stone-300/80 shrink-0"
+                  />
+                ) : null}
+                <span
+                  className={`${nickColor ? "" : "brick-nick-shimmer"} truncate`}
+                  style={nickColor ? { color: nickColor, fontWeight: 700 } : undefined}
+                >
+                  {slot.discordNick}
+                </span>
               </span>
             </div>
           )}

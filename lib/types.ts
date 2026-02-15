@@ -12,6 +12,7 @@ export type Slot = {
   discordNick?: string | null;
   ownerDiscordId?: string | null;
   ownerDiscordUsername?: string | null;
+  ownerDiscordAvatar?: string | null;
 };
 
 export type SlotsData = {
@@ -30,6 +31,7 @@ export function createEmptySlots(): Slot[] {
       discordNick: null,
       ownerDiscordId: null,
       ownerDiscordUsername: null,
+      ownerDiscordAvatar: null,
     })
   );
 }
@@ -45,6 +47,7 @@ export function appendRow(slots: Slot[]): Slot[] {
     discordNick: null,
     ownerDiscordId: null,
     ownerDiscordUsername: null,
+    ownerDiscordAvatar: null,
   }));
   return [...slots, ...newRow].slice(0, MAX_SLOTS);
 }

@@ -34,6 +34,10 @@ function normalizeSlots(data: SlotsData): SlotsData {
       typeof s.ownerDiscordUsername === "string" && s.ownerDiscordUsername.trim()
         ? s.ownerDiscordUsername.trim()
         : null,
+    ownerDiscordAvatar:
+      typeof s.ownerDiscordAvatar === "string" && s.ownerDiscordAvatar.trim()
+        ? s.ownerDiscordAvatar.trim()
+        : null,
   }));
   return { ...data, slots };
 }

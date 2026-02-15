@@ -81,6 +81,7 @@ export async function DELETE(request: NextRequest) {
               discordNick: null,
               ownerDiscordId: null,
               ownerDiscordUsername: null,
+              ownerDiscordAvatar: null,
             }
           : s
       );

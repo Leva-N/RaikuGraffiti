@@ -11,7 +11,7 @@ import {
 import { DRAGON_FILENAMES, getDragonUrl } from "@/lib/dragons";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
-import { isAdminDiscordId } from "@/lib/permissions";
+import { getNickColor, isAdminDiscordId } from "@/lib/permissions";
 import { useLanguage } from "@/components/LanguageProvider";
 
 let assignInFlight = false;
@@ -107,6 +107,7 @@ export function WallGrid() {
   const currentDiscordId = session?.user?.id ?? null;
   const isAdmin = isAdminDiscordId(currentDiscordId);
   const { language, t } = useLanguage();
+  const shuffledDragonFilenames = useMemo(() => shuffleWithUniformRandom(DRAGON_FILENAMES), []);
 
   const requireDiscordConnection = () => {
     if (currentDiscordId) {
@@ -459,6 +460,7 @@ export function WallGrid() {
                   discordNick: null,
                   ownerDiscordId: null,
                   ownerDiscordUsername: null,
+                      ownerDiscordAvatar: null,
                 }
               : s
           );
@@ -662,19 +664,29 @@ export function WallGrid() {
                           width={32}
                           height={32}
                           className="h-8 w-8 sm:h-[34px] sm:w-[34px] rounded object-cover border border-stone-300"
-                          unoptimized
                         />
                       ) : (
                         <div className="h-[34px] w-[34px] rounded border border-stone-300 bg-stone-200" />
                       )}
-                      <span
-                        className="flex-1 truncate text-xs"
-                        style={{
-                          color: isAdminDiscordId(slot.ownerDiscordId) ? "#d4af37" : "#44403c",
-                          fontWeight: isAdminDiscordId(slot.ownerDiscordId) ? 700 : 400,
-                        }}
-                      >
-                        {slot.discordNick || slot.ownerDiscordUsername || t.wall.unknownUser}
+                      <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                        {slot.ownerDiscordAvatar ? (
+                          <Image
+                            src={slot.ownerDiscordAvatar}
+                            alt=""
+                            width={18}
+                            height={18}
+                            className="h-[18px] w-[18px] rounded-full object-cover border border-stone-300 shrink-0"
+                          />
+                        ) : null}
+                        <span
+                          className="truncate text-xs"
+                          style={{
+                            color: getNickColor(slot.ownerDiscordId) ?? "#44403c",
+                            fontWeight: getNickColor(slot.ownerDiscordId) ? 700 : 400,
+                          }}
+                        >
+                          {slot.discordNick || slot.ownerDiscordUsername || t.wall.unknownUser}
+                        </span>
                       </span>
                     </button>
                   ))}
@@ -733,7 +745,6 @@ export function WallGrid() {
                       fill
                       sizes={isMobile ? "72px" : "96px"}
                       className="object-cover"
-                      unoptimized
                     />
                   </div>
                 ))}
@@ -771,7 +782,7 @@ export function WallGrid() {
               </button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
-              {DRAGON_FILENAMES.map((filename) => {
+              {shuffledDragonFilenames.map((filename) => {
                 const imageUrl = getDragonUrl(filename);
                 return (
                   <button
@@ -794,7 +805,6 @@ export function WallGrid() {
                       fill
                       sizes="(max-width: 640px) 50vw, 200px"
                       className="object-cover"
-                      unoptimized
                     />
                   </button>
                 );
@@ -826,7 +836,6 @@ export function WallGrid() {
                     alt={t.wall.selectedDragonPreviewAlt}
                     fill
                     className="object-contain"
-                    unoptimized
                   />
                 </div>
               )}

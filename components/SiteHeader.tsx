@@ -21,7 +21,28 @@ const THEME_HINTS: Record<Language, { dark: string; light: string }> = {
   id: { dark: "Beralih ke mode gelap", light: "Beralih ke mode terang" },
   es: { dark: "Cambiar a modo oscuro", light: "Cambiar a modo claro" },
   ar: { dark: "التبديل إلى الوضع الداكن", light: "التبديل إلى الوضع الفاتح" },
+  tr: { dark: "Koyu moda geç", light: "Aydınlık moda geç" },
+  ko: { dark: "다크 모드로 전환", light: "라이트 모드로 전환" },
+  uk: { dark: "Увімкнути темну тему", light: "Увімкнути світлу тему" },
+  tl: { dark: "Lumipat sa dark mode", light: "Lumipat sa light mode" },
+  fr: { dark: "Passer en mode sombre", light: "Passer en mode clair" },
 };
+
+function DiscordIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="h-4 w-4 fill-current">
+      <path d="M20.317 4.369A19.791 19.791 0 0 0 15.885 3c-.191.328-.403.769-.552 1.111a18.27 18.27 0 0 0-6.666 0A11.178 11.178 0 0 0 8.115 3a19.736 19.736 0 0 0-4.433 1.369C.875 8.6.11 12.73.482 16.803a19.942 19.942 0 0 0 5.431 2.769c.437-.598.827-1.233 1.164-1.902a12.987 12.987 0 0 1-1.833-.873c.154-.112.304-.229.449-.35 3.534 1.656 7.367 1.656 10.859 0 .146.121.296.238.449.35-.587.345-1.2.638-1.833.873.337.669.727 1.304 1.164 1.902a19.9 19.9 0 0 0 5.434-2.771c.436-4.724-.746-8.817-3.53-12.432ZM8.02 14.332c-1.058 0-1.93-.966-1.93-2.154 0-1.189.851-2.154 1.93-2.154 1.087 0 1.95.974 1.93 2.154 0 1.188-.851 2.154-1.93 2.154Zm7.96 0c-1.058 0-1.93-.966-1.93-2.154 0-1.189.851-2.154 1.93-2.154 1.087 0 1.95.974 1.93 2.154 0 1.188-.843 2.154-1.93 2.154Z" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="h-4 w-4 fill-current">
+      <path d="M18.244 2H21l-6.52 7.452L22.2 22h-6.046l-4.733-6.107L6.076 22H3.32l6.973-7.97L1.8 2h6.2l4.278 5.52L18.244 2Zm-1.06 18h1.527L7.178 3.894H5.54L17.185 20Z" />
+    </svg>
+  );
+}
 
 export function SiteHeader() {
   const [showAbout, setShowAbout] = useState(false);
@@ -134,7 +155,6 @@ export function SiteHeader() {
                           width={18}
                           height={14}
                           className="h-[14px] w-[18px] rounded-sm object-cover"
-                          unoptimized
                         />
                         <span>{activeLanguage.label}</span>
                       </span>
@@ -162,7 +182,6 @@ export function SiteHeader() {
                                   width={18}
                                   height={14}
                                   className="h-[14px] w-[18px] rounded-sm object-cover"
-                                  unoptimized
                                 />
                                 <span style={{ color: "#9c64fb" }}>{option.label}</span>
                               </span>
@@ -234,7 +253,6 @@ export function SiteHeader() {
                   width={18}
                   height={14}
                   className="h-[14px] w-[18px] rounded-sm object-cover"
-                  unoptimized
                 />
                 <span>{activeLanguage.label}</span>
               </button>
@@ -265,7 +283,6 @@ export function SiteHeader() {
                             width={18}
                             height={14}
                             className="h-[14px] w-[18px] rounded-sm object-cover"
-                            unoptimized
                           />
                           <span style={{ color: "#9c64fb" }}>{option.label}</span>
                         </span>
@@ -331,49 +348,76 @@ export function SiteHeader() {
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <section className="rounded-xl bg-white/60 p-5 border border-stone-200/80 flex flex-col items-center text-center">
+              <section className="rounded-xl bg-white/60 p-5 border border-stone-200/80 flex h-full flex-col items-center text-center">
                 <div className="relative w-24 h-24 rounded-full overflow-hidden shrink-0 mb-4 border-2 border-stone-200">
                   <Image
                     src="/images/photo_2025-08-29_14-08-14.jpg"
                     alt=""
                     fill
                     className="object-cover"
-                    unoptimized
                   />
                 </div>
                 <p className="text-sm leading-relaxed text-center" style={{ color: "#9c64fb" }}>
-                  {t.header.aboutCredit}{" "}
+                  The full development, structuring, practical adaptation, implementation of the project and sticker
+                  design were carried out by <span className="font-medium">Lev</span>.
+                </p>
+                <div className="mt-auto pt-3 flex items-center gap-3">
+                  <a
+                    href="https://discordapp.com/users/406118319612231682"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center rounded-full border border-stone-300 bg-white p-2 text-[#5865F2] hover:brightness-95"
+                    aria-label="Lev Discord"
+                    title="Lev Discord"
+                  >
+                    <DiscordIcon />
+                  </a>
                   <a
                     href="https://x.com/LevSouth"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-medium text-[#9c64fb] hover:underline"
+                    className="inline-flex items-center justify-center rounded-full border border-stone-300 bg-white p-2 text-black hover:brightness-95"
+                    aria-label="Lev X (Twitter)"
+                    title="Lev X (Twitter)"
                   >
-                    @levsouth
+                    <XIcon />
                   </a>
-                </p>
+                </div>
               </section>
-              <section className="rounded-xl bg-white/60 p-5 border border-stone-200/80 flex flex-col items-center text-center">
+              <section className="rounded-xl bg-white/60 p-5 border border-stone-200/80 flex h-full flex-col items-center text-center">
                 <div className="relative w-24 h-24 rounded-full overflow-hidden shrink-0 mb-4 border-2 border-stone-200">
                   <Image
-                    src="/images/photo_2024-10-02_21-18-39.jpg"
+                    src={"/images/" + encodeURIComponent("ChatGPT Image 15 февр. 2026 г., 16_53_22.png")}
                     alt=""
                     fill
                     className="object-cover"
-                    unoptimized
                   />
                 </div>
                 <p className="text-sm leading-relaxed text-center" style={{ color: "#9c64fb" }}>
-                  {t.header.conceptCredit}{" "}
+                  {t.header.conceptCredit} <span className="font-medium">tamiON</span>
+                </p>
+                <div className="mt-auto pt-3 flex items-center gap-3">
+                  <a
+                    href="https://discordapp.com/users/1100061023941165147"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center rounded-full border border-stone-300 bg-white p-2 text-[#5865F2] hover:brightness-95"
+                    aria-label="tamiON Discord"
+                    title="tamiON Discord"
+                  >
+                    <DiscordIcon />
+                  </a>
                   <a
                     href="https://x.com/nasty777coin"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-medium text-[#9c64fb] hover:underline"
+                    className="inline-flex items-center justify-center rounded-full border border-stone-300 bg-white p-2 text-black hover:brightness-95"
+                    aria-label="tamiON X (Twitter)"
+                    title="tamiON X (Twitter)"
                   >
-                    tamiON
+                    <XIcon />
                   </a>
-                </p>
+                </div>
               </section>
             </div>
             <p className="mt-5 text-center text-sm leading-relaxed" style={{ color: "#9c64fb" }}>

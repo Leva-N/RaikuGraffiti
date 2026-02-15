@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Сначала подключите Discord" }, { status: 401 });
       }
       const discordUsername = session.user?.name?.trim() || "Discord User";
+      const discordAvatar = typeof session.user?.image === "string" ? session.user.image.trim() : "";
 
       let body: { imageUrl?: string };
       try {
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
               discordNick: discordUsername,
               ownerDiscordId: discordUserId,
               ownerDiscordUsername: discordUsername,
+              ownerDiscordAvatar: discordAvatar || null,
             }
           : s
       );

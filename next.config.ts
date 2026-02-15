@@ -13,6 +13,16 @@ const nextConfig: NextConfig = {
         hostname: "flagcdn.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "cdn.discordapp.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "media.discordapp.net",
+        pathname: "/**",
+      },
     ],
   },
   // Избегаем бандлинга @vercel/blob в Webpack — пакет может вызывать
