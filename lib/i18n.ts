@@ -167,7 +167,7 @@ export const translations: Record<Language, Translation> = {
       foreverInHeart: "В сердце Raiku навсегда",
       connectDiscord: "Подключить Discord",
       disconnectDiscord: "Отключить",
-      about: "Душа Raiku",
+      about: "Душа Raiku Graffiti",
       close: "Закрыть",
       aboutCredit:
         "Полная разработка, структурирование, практическая адаптация, реализация проекта и дизайн стикеров были выполнены",
@@ -232,7 +232,7 @@ export const translations: Record<Language, Translation> = {
       foreverInHeart: "Raikuの心に永遠に",
       connectDiscord: "Discordに接続",
       disconnectDiscord: "切断",
-      about: "Raikuの魂",
+      about: "Raiku Graffitiの魂",
       close: "閉じる",
       aboutCredit:
         "プロジェクトの完全な開発、構造化、実用適応、実装、およびステッカーデザインは @levsouth によって行われました。",
@@ -297,7 +297,7 @@ export const translations: Record<Language, Translation> = {
       foreverInHeart: "永远在 Raiku 心中",
       connectDiscord: "连接 Discord",
       disconnectDiscord: "断开连接",
-      about: "Raiku之魂",
+      about: "Raiku Graffiti 之魂",
       close: "关闭",
       aboutCredit:
         "项目的完整开发、结构化、实践适配、实现以及贴纸设计由 @levsouth 完成。",
@@ -362,7 +362,7 @@ export const translations: Record<Language, Translation> = {
       foreverInHeart: "Mãi mãi trong tim Raiku",
       connectDiscord: "Kết nối Discord",
       disconnectDiscord: "Ngắt kết nối",
-      about: "Linh hồn của Raiku",
+      about: "Linh hồn của Raiku Graffiti",
       close: "Đóng",
       aboutCredit:
         "Toàn bộ quá trình phát triển, cấu trúc, thích nghi thực tế, triển khai dự án và thiết kế sticker được thực hiện bởi @levsouth.",
@@ -427,7 +427,7 @@ export const translations: Record<Language, Translation> = {
       foreverInHeart: "Raiku के दिल में हमेशा",
       connectDiscord: "Discord से जुड़ें",
       disconnectDiscord: "डिस्कनेक्ट",
-      about: "Raiku की आत्मा",
+      about: "Raiku Graffiti की आत्मा",
       close: "बंद करें",
       aboutCredit:
         "प्रोजेक्ट का पूरा विकास, संरचना, व्यावहारिक अनुकूलन, कार्यान्वयन और स्टिकर डिज़ाइन @levsouth द्वारा किया गया।",
@@ -492,7 +492,7 @@ export const translations: Record<Language, Translation> = {
       foreverInHeart: "Selamanya di hati Raiku",
       connectDiscord: "Hubungkan Discord",
       disconnectDiscord: "Putuskan",
-      about: "Jiwa Raiku",
+      about: "Jiwa Raiku Graffiti",
       close: "Tutup",
       aboutCredit:
         "Pengembangan penuh, penyusunan, adaptasi praktis, implementasi proyek, dan desain stiker dilakukan oleh @levsouth.",
@@ -557,7 +557,7 @@ export const translations: Record<Language, Translation> = {
       foreverInHeart: "Para siempre en el corazón de Raiku",
       connectDiscord: "Conectar Discord",
       disconnectDiscord: "Desconectar",
-      about: "El alma de Raiku",
+      about: "El alma de Raiku Graffiti",
       close: "Cerrar",
       aboutCredit:
         "El desarrollo completo, la estructuración, la adaptación práctica, la implementación del proyecto y el diseño de stickers fueron realizados por @levsouth.",
@@ -622,7 +622,7 @@ export const translations: Record<Language, Translation> = {
       foreverInHeart: "Raiku'nun kalbinde sonsuza dek",
       connectDiscord: "Discord'a bağlan",
       disconnectDiscord: "Bağlantıyı kes",
-      about: "Soul of Raiku Graffiti",
+      about: "Raiku Graffiti'nin ruhu",
       close: "Kapat",
       aboutCredit:
         "Projenin tam geliştirmesi, yapılandırması, pratik uyarlaması, uygulanması ve sticker tasarımı şu kişi tarafından yapıldı:",
@@ -687,7 +687,7 @@ export const translations: Record<Language, Translation> = {
       foreverInHeart: "Raiku의 마음속에 영원히",
       connectDiscord: "Discord 연결",
       disconnectDiscord: "연결 해제",
-      about: "Soul of Raiku Graffiti",
+      about: "Raiku Graffiti의 영혼",
       close: "닫기",
       aboutCredit:
         "프로젝트의 전체 개발, 구조화, 실전 적용, 구현 및 스티커 디자인은 다음 인물이 담당했습니다:",
@@ -752,7 +752,7 @@ export const translations: Record<Language, Translation> = {
       foreverInHeart: "Назавжди в серці Raiku",
       connectDiscord: "Підключити Discord",
       disconnectDiscord: "Відключити",
-      about: "Soul of Raiku Graffiti",
+      about: "Душа Raiku Graffiti",
       close: "Закрити",
       aboutCredit:
         "Повна розробка, структурування, практична адаптація, реалізація проєкту та дизайн стікерів виконані",
@@ -817,7 +817,7 @@ export const translations: Record<Language, Translation> = {
       foreverInHeart: "Habambuhay sa puso ni Raiku",
       connectDiscord: "Ikonekta ang Discord",
       disconnectDiscord: "I-disconnect",
-      about: "Soul of Raiku Graffiti",
+      about: "Kaluluwa ng Raiku Graffiti",
       close: "Isara",
       aboutCredit:
         "Ang buong development, pag-structure, practical adaptation, implementation ng project, at sticker design ay ginawa ni",
@@ -882,7 +882,7 @@ export const translations: Record<Language, Translation> = {
       foreverInHeart: "À jamais dans le cœur de Raiku",
       connectDiscord: "Connecter Discord",
       disconnectDiscord: "Déconnecter",
-      about: "Soul of Raiku Graffiti",
+      about: "L'âme de Raiku Graffiti",
       close: "Fermer",
       aboutCredit:
         "Le développement complet, la structuration, l'adaptation pratique, la mise en œuvre du projet et le design des stickers ont été réalisés par",
@@ -947,7 +947,7 @@ export const translations: Record<Language, Translation> = {
       foreverInHeart: "إلى الأبد في قلب Raiku",
       connectDiscord: "اتصل بـ Discord",
       disconnectDiscord: "قطع الاتصال",
-      about: "روح Raiku",
+      about: "روح Raiku Graffiti",
       close: "إغلاق",
       aboutCredit:
         "تم تنفيذ التطوير الكامل والهيكلة والتكييف العملي وتنفيذ المشروع وتصميم الملصقات بواسطة @levsouth.",
